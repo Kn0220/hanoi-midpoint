@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": "$room.length === 16",
+        ".write": "$room.length === 16",
+        "s": {
+          "m": { ".validate": "newData.val() === 'b' || newData.val() === 'c'" },
+          "g": { ".validate": "newData.val() === 'f' || newData.val() === 't'" },
+          "$other": { ".validate": false }
+        },
+        "pins": {
+          "$pin": {
+            ".validate": "$pin.length === 8 && newData.hasChildren(['la', 'lo', 'n', 't'])",
+            "la": { ".validate": "newData.isNumber() && newData.val() > 20.8 && newData.val() < 21.3" },
+            "lo": { ".validate": "newData.isNumber() && newData.val() > 105.5 && newData.val() < 106.1" },
+            "n": { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "t": { ".validate": "newData.isNumber()" },
+            "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 12" },
+            "$other": { ".validate": false }
+          }
+        },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

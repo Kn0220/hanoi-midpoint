@@ -212,6 +212,7 @@ button { cursor: pointer; }
 .app.joining .search { order: -2; }
 .live { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
 .live .hint { margin: 0; }
+.live.next #live-start { align-self: stretch; justify-content: center; padding-block: 11px; font-size: 13.5px; }
 .live-on { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; align-self: stretch; }
 .live-on b { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; font-size: 13px; font-weight: 600; }
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
@@ -542,6 +543,7 @@ const VI = {
   'Opening the group…': 'Đang mở nhóm…',
   'Nobody yet. Tap the map where each friend is coming from, or search below.': 'Chưa có ai. Chạm vào bản đồ ở nơi mỗi người xuất phát, hoặc tìm bên dưới.',
   'Waiting for one more person.': 'Đang chờ thêm một người.',
+  'Or add a friend yourself below.': 'Hoặc tự thêm bạn ở ô bên dưới.',
   'Add one more friend to get a meeting place.': 'Thêm một người nữa để tìm điểm hẹn.',
   'Find the spot': 'Tìm điểm hẹn',
   'The example group meets here': 'Nhóm ví dụ gặp nhau ở đây',
@@ -851,8 +853,8 @@ function renderPanel() {
   });
   if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
   $('example-note').hidden = !state.example || !!room; renderJoin();
-  $('clear').hidden = !room && (state.people.length < 2 || state.example);   // one pin has its own remove button, and the example is replaced as soon as someone adds themselves renderLive();
-  if (state.people.length < 2) { const li = document.createElement('li'); li.className = 'note'; li.textContent = state.people.length ? (room ? tr('Waiting for one more person.') : tr('Add one more friend to get a meeting place.')) : room ? (room.shown ? tr('Nobody is on the map yet.') : tr('Opening the group…')) : tr('Nobody yet. Tap the map where each friend is coming from, or search below.'); ul.append(li); }
+  $('clear').hidden = !room && (state.people.length < 2 || state.example); renderLive();   // one pin has its own remove button, and the example is replaced as soon as someone adds themselves
+  if (state.people.length < 2) { const li = document.createElement('li'); li.className = 'note'; li.textContent = state.people.length ? (room ? tr('Waiting for one more person.') : LIVE_DB ? tr('Or add a friend yourself below.') : tr('Add one more friend to get a meeting place.')) : room ? (room.shown ? tr('Nobody is on the map yet.') : tr('Opening the group…')) : tr('Nobody yet. Tap the map where each friend is coming from, or search below.'); ul.append(li); }
   $('go').hidden = state.people.length < 2 || !!res || live || booting;   // only there when pressing it is the next step: two people on the map and no answer on its way
   $('answer').hidden = $('answer-more').hidden = !times;
   if (!times) return;
@@ -1423,6 +1425,7 @@ function setLive(status) { if (room) { room.status = status; renderLive(); } }
 function renderLive() {
   $('live').hidden = !LIVE_DB || (!room && app.classList.contains('joining')); if (!LIVE_DB) return;
   $('live-start').hidden = !!room; $('live-on').hidden = !room; if (!room) $('live-link').hidden = true;
+  $('live').classList.toggle('next', !room && state.people.length === 1 && !state.example);   // alone on the map: inviting is the next step, so the button gets the full width
   $('live-hint').textContent = room ? tr('Anyone with the link can add themselves.') + (room.born ? tr(' It works until {t}, then the pins are deleted.', { t: fmtEnd(room.born + TTL) }) : '') : tr('One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.');
   if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? tr('Live group') : room.status === 'offline' ? tr('Reconnecting…') : tr('Connecting…'); }
   $('clear').textContent = room ? tr('Leave group') : tr('Start fresh');

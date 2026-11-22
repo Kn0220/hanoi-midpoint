@@ -21,9 +21,9 @@ Open it: https://kn0220.github.io/hanoi-midpoint/
 
 ## Live groups (optional)
 
-With a database address set, the page shows "Plan together with a live link". One person starts a group and sends the link; everyone who opens it adds their own pin and name, and the meeting place updates on every screen. Up to 12 people per group.
+With a database address set, the page shows "Invite the group" once you have put yourself on the map. One tap starts the group and opens the phone's share sheet (elsewhere it copies the invite); everyone who opens the link adds their own pin and name, and the meeting place updates on every screen. Up to 12 people per group.
 
-Someone who opens a group link is first asked where they are coming from, and their own pin is marked "you". The page remembers their name, their last place and which pin is theirs in that browser only, so next time adding themselves is one tap.
+Everyone, the organiser included, is first asked where they are coming from, and their own pin is marked "you". The page remembers their name, their last place and which pin is theirs in that browser only, so next time adding themselves is one tap.
 
 It uses a Firebase Realtime Database through its plain web address, with no sign-in and no key. Anyone who has a group's link can see and change that group's pins, and groups cannot be listed, so a group is as private as its link.
 

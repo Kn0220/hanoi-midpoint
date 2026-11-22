@@ -219,27 +219,9 @@ button { cursor: pointer; }
   <section class="panel" aria-label="Plan" data-t="aria-label">
     <div class="head pad">
       <div class="brand"><h1>Hanoi Midpoint</h1><div class="seg lang" role="group" aria-label="Language"><button type="button" id="lang-vi" lang="vi" aria-label="Tiếng Việt" aria-pressed="false">VI</button><button type="button" id="lang-en" lang="en" aria-label="English" aria-pressed="true">EN</button></div></div>
-      <div class="opts">
-        <div class="seg" role="group" aria-label="How everyone travels" data-t="aria-label">
-          <button type="button" id="mode-bike" aria-pressed="true" data-t>Motorbike</button>
-          <button type="button" id="mode-car" aria-pressed="false" data-t>Car</button>
-        </div>
-        <div class="seg" role="group" aria-label="What counts as best" data-t="aria-label">
-          <button type="button" id="goal-fair" aria-pressed="true" title="Make the longest ride as short as possible" data-t="text title">Fairest</button>
-          <button type="button" id="goal-total" aria-pressed="false" title="Make everyone's travel added together as small as possible" data-t="text title">Least total</button>
-        </div>
-      </div>
     </div>
     <div class="scroll pad" id="scroll">
-      <div class="intro" id="intro" hidden>
-        <h2 data-t>Where should we meet?</h2>
-        <p data-t>Everyone adds where they are coming from. You get the place with the fairest ride for all of you.</p>
-        <div class="actions">
-          <button type="button" class="btn solid" id="intro-live" hidden data-t>Start a group link</button>
-          <button type="button" class="btn" id="intro-self" data-t>Add everyone myself</button>
-        </div>
-        <p data-t>Below is an example with four friends.</p>
-      </div>
+      <p class="hint" id="example-note" hidden data-t>An example to show how it works: four friends and where they would meet.</p>
       <div class="answer" id="answer" hidden>
         <div class="plate">
           <span class="kick" id="answer-kicker">Meet here</span>
@@ -256,6 +238,16 @@ button { cursor: pointer; }
           <button type="button" class="btn" id="copy" data-t>Copy plan for the group chat</button>
         </div>
         <textarea id="plan" class="plan" rows="7" readonly hidden aria-label="Plan text. Copy it from here." data-t="aria-label"></textarea>
+        <div class="opts">
+          <div class="seg" role="group" aria-label="How everyone travels" data-t="aria-label">
+            <button type="button" id="mode-bike" aria-pressed="true" data-t>Motorbike</button>
+            <button type="button" id="mode-car" aria-pressed="false" data-t>Car</button>
+          </div>
+          <div class="seg" role="group" aria-label="What counts as best" data-t="aria-label">
+            <button type="button" id="goal-fair" aria-pressed="true" title="Make the longest ride as short as possible" data-t="text title">Fairest</button>
+            <button type="button" id="goal-total" aria-pressed="false" title="Make everyone's travel added together as small as possible" data-t="text title">Least total</button>
+          </div>
+        </div>
       </div>
       <div class="block">
         <div class="join" id="join" hidden>
@@ -270,7 +262,7 @@ button { cursor: pointer; }
         </div>
         <div class="row-between"><span class="label" id="people-label" data-t>Who's coming</span><button type="button" class="linkbtn" id="clear" data-t>Start fresh</button></div>
         <div class="live" id="live" hidden>
-          <button type="button" class="btn" id="live-start" data-t>Plan together with a live link</button>
+          <button type="button" class="btn solid" id="live-start" data-t>Invite the group</button>
           <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy" data-t>Invite the group</button></div>
           <input class="plan" id="live-link" readonly hidden aria-label="Invite link. Copy it from here." data-t="aria-label">
           <p class="hint" id="live-hint"></p>
@@ -346,10 +338,6 @@ const VI = {
   'What counts as best': 'Thế nào là tốt nhất',
   'Make the longest ride as short as possible': 'Để người đi xa nhất phải đi ít nhất có thể',
   'Make everyone\'s travel added together as small as possible': 'Để tổng thời gian đi của cả nhóm thấp nhất có thể',
-  'Where should we meet?': 'Gặp nhau ở đâu?',
-  'Start a group link': 'Tạo link nhóm',
-  'Add everyone myself': 'Tự thêm mọi người',
-  'Below is an example with four friends.': 'Bên dưới là ví dụ với bốn người bạn.',
   'Longest ride': 'Đi lâu nhất',
   'Biggest gap': 'Chênh lệch',
   'Longest ride minus shortest ride': 'Người đi lâu nhất trừ người đi nhanh nhất',
@@ -357,11 +345,12 @@ const VI = {
   'Directions in Google Maps': 'Chỉ đường bằng Google Maps',
   'Copy plan for the group chat': 'Sao chép kế hoạch gửi nhóm chat',
   'Plan text. Copy it from here.': 'Nội dung kế hoạch. Sao chép từ đây.',
+  'Add yourself, then invite the group or add friends yourself. You get the fairest place to meet for all of you.': 'Thêm vị trí của bạn, rồi mời cả nhóm hoặc tự thêm bạn bè. Bạn sẽ có điểm hẹn công bằng nhất cho cả nhóm.',
+  'An example to show how it works: four friends and where they would meet.': 'Ví dụ minh hoạ: bốn người bạn và điểm hẹn của họ.',
   'Where are you coming from?': 'Bạn đi từ đâu?',
   'Your name': 'Tên bạn',
   'Use where I am now': 'Dùng vị trí hiện tại của tôi',
   'Who\'s coming': 'Ai sẽ đến',
-  'Plan together with a live link': 'Cùng lên kế hoạch qua link nhóm',
   'Invite the group': 'Mời cả nhóm',
   'Invite link. Copy it from here.': 'Link mời. Sao chép từ đây.',
   'Places near the midpoint': 'Quán gần điểm giữa',
@@ -494,7 +483,6 @@ const VI = {
   'Car': 'Ô tô',
   'Fairest': 'Công bằng nhất',
   'Least total': 'Tổng ít nhất',
-  'Everyone adds where they are coming from. You get the place with the fairest ride for all of you.': 'Mỗi người thêm nơi mình xuất phát. Bạn sẽ có điểm hẹn công bằng nhất về đường đi cho cả nhóm.',
   '{n}, {w}. Hold, then drag to move.': '{n}, {w}. Giữ rồi kéo để di chuyển.',
   '{n} moved to {w}': 'Đã chuyển {n} đến {w}',
   'To move your pin, hold it for a moment, then drag.': 'Muốn chuyển ghim của bạn, giữ một lúc rồi kéo.',
@@ -732,7 +720,7 @@ function addPerson(x, y, name, opts) {       // returns the person, or null with
   opts = opts || {};
   if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast(tr('Up to {n} friends at a time', { n: MAX_PEOPLE })); return null; }
   const used = new Set(state.people.map(p => p.color));
-  const me = !!room && !opts.remote && !state.people.some(q => q.me);   // in a live group, the first pin added on this device is this person's own
+  const me = !opts.remote && !opts.quiet && !state.people.some(q => q.me) && (!!room || !state.people.length);   // the first pin someone adds, alone or in a group, is their own
   const typed = me ? cleanName($('join-name').value) : '', last = me ? cleanName(mem.get()) : '';   // it takes the name typed in the join step, or the one used last time
   if (typed) mem.set(typed);
   const p = { id: state.nextId++, me, name: cleanName(name || '') || typed || (last && !state.people.some(q => q.name === last) ? last : '') || freeName(), x, y, v: -1, snapD: 0, color: (opts.color && !used.has(opts.color) ? opts.color : '') || COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null, mine: !!room && !opts.remote };
@@ -779,7 +767,7 @@ function renderPanel() {
     li.append(dot, who, trip, x); ul.append(li);
   });
   if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
-  $('intro').hidden = !state.example || !!room; renderJoin();
+  $('example-note').hidden = !state.example || !!room; renderJoin();
   $('clear').hidden = !state.people.length && !room; renderLive();
   if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? tr('Nobody is on the map yet.') : tr('Opening the group…')) : tr('Nobody yet. Tap the map where each friend is coming from, or search below.'); ul.append(li); }
   const go = $('go'); go.disabled = state.people.length < 2; go.classList.toggle('stale', !res && state.people.length >= 2);
@@ -1068,7 +1056,7 @@ function dropPin(keep) {
   const el = pinEl(d), p = d.p; if (el) el.classList.remove('drag');
   if (keep && d.moved && el && el._x !== undefined && state.people.includes(p)) {
     const old = [p.x, p.y, p.label], wasExample = state.example; p.x = el._x; p.y = el._y; p.label = '';
-    if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true);
+    if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true); if (p.me && !room) saveHome(p);
       toast(tr('{n} moved to {w}', { n: p.name, w: p.where.split(',')[0] }), tr('Undo'), () => { if (!state.people.includes(p)) return; p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); state.example = wasExample; changed(true); }); }
     else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast(tr('That is outside the mapped part of Hanoi')); }
   }
@@ -1132,7 +1120,9 @@ function tapMap(x, y) {
   changed(true);
   if (p.me) welcome(p); else toast(tr('{n} added at {w}', { n: p.name, w: p.where.split(',')[0] }), tr('Undo'), () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
 }
+function saveHome(p) { const ll = toLatLon(p.x, p.y); store.set('midpoint-home', { la: +ll[0].toFixed(5), lo: +ll[1].toFixed(5), w: p.where.split(',')[0] }); }   // kept on this device only
 function welcome(p) {                        // this device's own pin just went on the map
+  if (!room) saveHome(p); $('scroll').scrollTop = 0;
   const ask = () => { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } };
   if (/^(?:Friend|Bạn) \d+$/.test(p.name)) toast(tr('You are on the map. Add your name so the group knows who it is.'), tr('Add name'), ask);
   else toast(tr('You are on the map, {n}. Hold your pin, then drag to fine-tune.', { n: p.name }));
@@ -1337,13 +1327,13 @@ function pullRoom(full) {                    // make this screen match the group
   if (next.length !== before) moved = true;
   r.applying = false;
   if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.some(p => p.me) ? next.map(p => [p.x, p.y]) : []); pushRoom(); }   // someone still to add themselves gets the whole city, not a close-up of the first pin
-  else if (moved || resend) changed(true);
+  else if (moved || resend) changed(!(joined && !pinDrag && !pinHold && !app.classList.contains('searching')));
   else if (renamed) { renderPanel(); renderPins(); }
   if (joined) toast(tr('{n} is on the map', { n: joined }));
 }
 function setLive(status) { if (room) { room.status = status; renderLive(); } }
 function renderLive() {
-  $('live').hidden = !LIVE_DB || (state.example && !room); if (!LIVE_DB) return;
+  $('live').hidden = !LIVE_DB || (!room && app.classList.contains('joining')); if (!LIVE_DB) return;
   $('live-start').hidden = !!room; $('live-on').hidden = !room; if (!room) $('live-link').hidden = true;
   $('live-hint').textContent = room ? tr('Anyone with the link can add themselves.') + (room.born ? tr(' It works until {t}, then the pins are deleted.', { t: fmtEnd(room.born + TTL) }) : '') : tr('One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.');
   if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? tr('Live group') : room.status === 'offline' ? tr('Reconnecting…') : tr('Connecting…'); }
@@ -1352,22 +1342,25 @@ function renderLive() {
   searchEl.placeholder = joining ? tr('Search a street, alley, building or address') : room ? tr('Add someone else: street, alley, building') : tr('Add a friend: street, alley, building, address');
   $('hint').textContent = joining ? tr('Or tap the map. A nearby corner is fine if you would rather not mark your exact home.') : tr('Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.');
 }
-function renderJoin() {                      // the first step for anyone in a group who has not put themselves on the map yet
-  const others = state.people, on = !!room && room.shown && !others.some(p => p.me) && others.length < MAX_PEOPLE;
+let namedOnce = false;
+function renderJoin() {                      // the first step for everyone: put yourself on the map
+  const solo = !room && (state.example || !state.people.length), others = solo ? [] : state.people;
+  const on = solo ? !!G : !!room && room.shown && !others.some(p => p.me) && others.length < MAX_PEOPLE;
   app.classList.toggle('joining', on); $('join').hidden = !on; if (!on) return;
   const names = others.slice(0, 3).map(p => p.name), more = others.length - names.length;
   const list = more > 0 ? tr('{list} and {n} more', { list: names.join(', '), n: more }) : names.length > 1 ? names.slice(0, -1).join(', ') + tr(' and ') + names[names.length - 1] : names[0];
-  $('join-sub').textContent = !others.length ? tr('You are the first one here. Add yourself, then invite the group.')
+  $('join-sub').textContent = solo ? tr('Add yourself, then invite the group or add friends yourself. You get the fairest place to meet for all of you.') : !others.length ? tr('You are the first one here. Add yourself, then invite the group.')
     : tr(others.length > 1 ? '{names} are on the map. The meeting place updates as people join.' : '{names} is on the map. The meeting place updates as people join.', { names: list });
-  const nameEl = $('join-name'); if (!room.named) { room.named = true; if (!nameEl.value) nameEl.value = cleanName(mem.get()); }
+  const nameEl = $('join-name'); if (!namedOnce) { namedOnce = true; if (!nameEl.value) nameEl.value = cleanName(mem.get()); }
   const home = homeGet(), saved = $('join-saved'); saved.hidden = !home; if (home) saved.textContent = tr('Add me from {w}', { w: home.w || tr('my last place') });
-  $('join-here').hidden = !(navigator.geolocation && window.isSecureContext); $('join-ways').hidden = saved.hidden && $('join-here').hidden;
+  $('join-here').hidden = !(navigator.geolocation && window.isSecureContext); $('join-here').classList.toggle('solid', !home); $('join-ways').hidden = saved.hidden && $('join-here').hidden;
   const claim = $('join-claim'); claim.hidden = !others.length; claim.textContent = '';
   if (others.length) { claim.append(tr('Already on the map?')); for (const p of others) { const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn'; b.textContent = tr('I am {n}', { n: p.name }); b.addEventListener('click', () => { p.me = p.mine = true; changed(true); toast(tr('Got it. {n} is you.', { n: p.name })); }); claim.append(b); } }
 }
 function addSelf(x, y, label) {
-  const p = addPerson(x, y, '', label ? { label } : {}); if (!p) return;
-  changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged(); welcome(p);
+  const keep = state.people; if (state.example) state.people = [];
+  const p = addPerson(x, y, '', label ? { label } : {}); if (!p) { state.people = keep; return; }
+  state.example = false; changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged(); welcome(p);
 }
 $('join-name').maxLength = MAX_NAME;
 $('join-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchEl.focus(); } });
@@ -1375,12 +1368,9 @@ $('join-saved').addEventListener('click', () => { const h = homeGet(); if (h) ad
 $('join-here').addEventListener('click', () => {
   const b = $('join-here'); b.disabled = true; b.textContent = tr('Finding you…');
   const done = () => { b.disabled = false; b.textContent = tr('Use where I am now'); };
-  navigator.geolocation.getCurrentPosition(pos => { done(); if (!room) return; const xy = toXY(pos.coords.latitude, pos.coords.longitude); addSelf(xy[0], xy[1]); },
+  navigator.geolocation.getCurrentPosition(pos => { done(); if (!app.classList.contains('joining')) return; const xy = toXY(pos.coords.latitude, pos.coords.longitude); addSelf(xy[0], xy[1]); },
     () => { done(); toast(tr('Could not get your location. Search for a place or tap the map instead.')); }, { timeout: 12000, maximumAge: 60000 });
 });
-$('intro-live').hidden = !LIVE_DB;
-$('intro-live').addEventListener('click', () => startRoom());
-$('intro-self').addEventListener('click', () => $('clear').click());
 function openStream() {
   const r = room; if (r.es) r.es.close(); clearTimeout(r.retry); r.asked = false;
   const es = r.es = new EventSource(roomUrl(''));
@@ -1444,7 +1434,8 @@ function startRoom() {                       // turn what is on screen into a gr
   r.q = stamp(r.id).catch(() => {});
   send('PUT', '', r.doc);
   changed(true);
-  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast(tr('Could not start a live group. Check the connection and try again.')); return; } openStream(); readBorn(r, false); copyInvite(true).then(ok => { if (ok && room === r) toast(tr('Group started. The invite is copied: paste it in your group chat.')); }); });
+  invite(true);                              // the link is known already, so the share sheet opens on this same tap
+  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast(tr('Could not start a live group. Check the connection and try again.')); return; } openStream(); readBorn(r, false); });
 }
 const inviteLink = () => location.origin + location.pathname + location.search + '#g-' + room.id;
 const INVITE = () => tr('Add your pin so we can find the fairest place to meet.');   // written in the sender's language
@@ -1453,13 +1444,13 @@ async function copyInvite(quiet) {           // true when the invite (a line of 
   try { await navigator.clipboard.writeText(INVITE() + ' ' + link); b.textContent = tr('Invite copied'); setTimeout(() => { b.textContent = tr('Invite the group'); }, 1800); return true; }
   catch (e) { if (!quiet) { const box = $('live-link'); box.value = link; box.hidden = false; box.focus(); box.select(); } return false; }
 }
-async function invite() {                    // on a phone, hand the invite to the share sheet (Messenger, Zalo…); elsewhere copy it
-  if (!room) return;
+async function invite(first) {               // on a phone, hand the invite to the share sheet (Messenger, Zalo…); elsewhere copy it
+  if (!room) return; const r = room;
   if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: 'Hanoi Midpoint', text: INVITE(), url: inviteLink() }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
-  copyInvite(false);
+  const ok = await copyInvite(false); if (ok && first === true && room === r) toast(tr('Group started. The invite is copied: paste it in your group chat.'));
 }
 $('live-start').addEventListener('click', startRoom);
-$('live-copy').addEventListener('click', invite);
+$('live-copy').addEventListener('click', () => invite());
 function route(hash) {                       // what a link holds: 'room', 'pins' or nothing usable
   const m = /^#?g-([0-9a-z]{16})$/.exec(hash || '');
   if (m) { if (!LIVE_DB) { toast(tr('That is a live group link. It only works on the hosted site.')); return ''; } if (!room || room.id !== m[1]) joinRoom(m[1]); return 'room'; }

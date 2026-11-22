@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Find the fairest place in Hanoi for a group of friends to meet, by real road travel time.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23E8B33C'/%3E%3Cpath d='M16 7l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7z' fill='%2317211E'/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Hanoi Midpoint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-screen tool. The map is the stage; one panel (left on desktop, below on phones) holds the answer, the people and the Find action. */
+:root {
+  --bg: #EEF1EE; --surface: #FFFFFF; --raised: #F4F6F3; --ink: #14201E; --muted: #5A6A66; --line: #D5DCD8;
+  --accent: #F0B429; --accent-ink: #2A1E00; --accent-text: #8A5A00; --danger: #B3261E;
+  --map-ground: #ECEFEA; --map-green: #D3E3CC; --map-green-ink: #4C7A4F; --map-water: #B7D3DE; --map-water-ink: #47788A;
+  --rl-a: #8C9893; --rl-b: #A6B0AB; --rl-c: #C2CAC5; --rl-d: #D2D8D4; --rf: #FFFFFF; --rf-a: #FFF1C9; --rc: #B3BCB7; --rail: #98A39E;
+  --label: #33423F; --label-soft: #62716D; --label-halo: #ECEFEA;
+  --front-alpha: .5; --front-blend: multiply;
+  --font: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1314; --surface: #131C1D; --raised: #1A2526; --ink: #E7EEEB; --muted: #93A39E; --line: #263435;
+    --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80;
+    --map-ground: #0B1112; --map-green: #0F1F19; --map-green-ink: #6FA277; --map-water: #0E2730; --map-water-ink: #5E93A3;
+    --rl-a: #5E6E6B; --rl-b: #465453; --rl-c: #2E3A3A; --rl-d: #222C2C; --rf: #303D3C; --rf-a: #4B4630; --rc: #131B1B; --rail: #3F4D4B;
+    --label: #B7C4C0; --label-soft: #83928E; --label-halo: #0B1112;
+    --front-alpha: .55; --front-blend: lighter;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1314; --surface: #131C1D; --raised: #1A2526; --ink: #E7EEEB; --muted: #93A39E; --line: #263435;
+  --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80;
+  --map-ground: #0B1112; --map-green: #0F1F19; --map-green-ink: #6FA277; --map-water: #0E2730; --map-water-ink: #5E93A3;
+  --rl-a: #5E6E6B; --rl-b: #465453; --rl-c: #2E3A3A; --rl-d: #222C2C; --rf: #303D3C; --rf-a: #4B4630; --rc: #131B1B; --rail: #3F4D4B;
+  --label: #B7C4C0; --label-soft: #83928E; --label-halo: #0B1112;
+  --front-alpha: .55; --front-blend: lighter;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45; overflow: hidden; }
+*, *::before, *::after { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(320px, 404px) 1fr; grid-template-rows: 100%; }
+.panel { grid-column: 1; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-right: 1px solid var(--line); }
+.stage { grid-column: 2; position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--map-ground); touch-action: none; user-select: none; -webkit-user-select: none; }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.head { padding-block: 14px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+.brand span { color: var(--muted); font-size: 12px; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg { display: inline-flex; background: var(--raised); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding-block: 12px 16px; display: flex; flex-direction: column; gap: 14px; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.linkbtn { border: 0; background: none; padding: 2px 0; color: var(--accent-text); font-weight: 600; font-size: 12.5px; }
+.note { margin: 0; padding: 8px 10px; background: var(--raised); border: 1px dashed var(--line); border-radius: var(--r); color: var(--muted); font-size: 12.5px; }
+.block { display: flex; flex-direction: column; gap: 8px; }
+
+.people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.person { display: grid; grid-template-columns: 26px 1fr auto 28px; align-items: center; gap: 8px; padding: 7px 4px 7px 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; }
+.person .who { min-width: 0; display: flex; flex-direction: column; }
+.person input { width: 100%; border: 0; background: transparent; padding: 0; font-weight: 600; font-size: 14px; border-radius: 4px; }
+.person .where { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person .bar { height: 3px; border-radius: 2px; background: var(--raised); margin-top: 5px; overflow: hidden; }
+.person .bar i { display: block; height: 100%; border-radius: 2px; transition: width .35s ease; }
+.person .trip { text-align: right; font-variant-numeric: tabular-nums; font-size: 12.5px; line-height: 1.25; white-space: nowrap; color: var(--muted); }
+.person .trip b { display: block; font-size: 14px; color: var(--ink); }
+.person .trip.long b { color: var(--accent-text); }
+.x { width: 28px; height: 28px; border: 0; background: transparent; color: var(--muted); border-radius: 6px; font-size: 16px; line-height: 1; }
+.x:hover { background: var(--raised); color: var(--ink); }
+
+.search { position: relative; }
+.search input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--raised); font-size: 16px; }
+.search input::placeholder { color: var(--muted); font-size: 14px; }
+.hint { margin: 6px 2px 0; color: var(--muted); font-size: 11.5px; }
+.hits { position: absolute; z-index: 5; left: 0; right: 0; top: 50px; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 8px 24px rgba(0,0,0,.18); max-height: 300px; overflow-y: auto; }
+.hits button { width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 8px; border-radius: 6px; display: flex; flex-direction: column; min-width: 0; }
+.hits button:hover, .hits button.on { background: var(--raised); }
+.hits b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.hits small { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.hits .note { border: 0; background: transparent; }
+
+.go { width: 100%; border: 0; border-radius: var(--r); padding: 12px 14px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; }
+.go:disabled { opacity: .45; cursor: not-allowed; }
+.go.stale { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+
+.answer { display: flex; flex-direction: column; gap: 10px; }
+.answer h2 { margin: 2px 0 0; font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
+.answer .sub { color: var(--muted); font-size: 12.5px; margin: 3px 0 0; }
+.kick { display: flex; align-items: center; gap: 6px; }
+.kick::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin: 0; }
+.facts div { background: var(--surface); padding: 8px 10px; min-width: 0; }
+.facts dt { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.facts dd { margin: 0; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 11px; font-weight: 600; font-size: 12.5px; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; }
+.btn:hover { background: var(--raised); }
+.btn.solid { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+.plan { width: 100%; border: 1px solid var(--line); border-radius: var(--r); background: var(--raised); color: var(--ink); font: inherit; font-size: 12.5px; padding: 8px 10px; resize: vertical; }
+.venues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.venues button { width: 100%; display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 7px 8px; }
+.venues button:hover { background: var(--raised); }
+.venues button[aria-pressed="true"] { border-color: var(--accent-text); background: var(--raised); }
+.venues .n { width: 22px; height: 22px; border-radius: 50%; background: var(--raised); border: 1px solid var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.venues button[aria-pressed="true"] .n { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.venues .vn { min-width: 0; }
+.venues .vn b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.venues .vn span { color: var(--muted); font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.venues .vt { font-variant-numeric: tabular-nums; font-size: 12.5px; text-align: right; white-space: nowrap; color: var(--muted); }
+.venues .vt b { color: var(--ink); }
+.tally { margin: 0; color: var(--muted); font-size: 12px; }
+.tally b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.foot { margin: 0; color: var(--muted); font-size: 11.5px; }
+.foot a { color: inherit; }
+
+/* map stage */
+.layer { position: absolute; left: -25%; top: -25%; width: 150%; height: 150%; transform-origin: 50% 50%; pointer-events: none; }
+.pins { position: absolute; inset: 0; pointer-events: none; }
+.pin { position: absolute; left: 0; top: 0; pointer-events: auto; touch-action: none; cursor: grab; display: flex; flex-direction: column; align-items: center; margin: -37px 0 0 -15px; width: 30px; border: 0; background: none; padding: 0; z-index: 2; }
+.pin i { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: grid; place-items: center; border: 2px solid var(--surface); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+.pin i b { transform: rotate(45deg); color: #fff; font-size: 12px; font-weight: 700; font-style: normal; }
+.pin span { position: absolute; top: 2px; left: 34px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 600; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.pin.drag { cursor: grabbing; z-index: 6; }
+.pin.drag i { box-shadow: 0 8px 14px rgba(0,0,0,.4); }
+.mark { position: absolute; left: 0; top: 0; pointer-events: auto; margin: -11px 0 0 -11px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); background: var(--ink); color: var(--surface); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0; box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 1; }
+.mark.tuck { display: none; }
+.mark.on { background: var(--accent); color: var(--accent-ink); width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 4; font-size: 17px; }
+.mark.on::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; border: 2px solid var(--accent); animation: ring 1.9s ease-out infinite; pointer-events: none; }
+.mark.exact { background: var(--surface); color: var(--ink); border: 2px dashed var(--accent-text); box-shadow: none; }
+.mark.exact.on { background: var(--accent); color: var(--accent-ink); border-style: solid; border-color: var(--surface); }
+@keyframes ring { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+.ctl { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 6px; z-index: 7; }
+.ctl button { width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); font-size: 19px; font-weight: 600; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.ctl button.txt { font-size: 11px; }
+.chip { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: calc(34px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 24px); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--muted); z-index: 7; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.chip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.mapfoot { position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(6px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; font-size: 10.5px; color: var(--label-soft); pointer-events: none; z-index: 6; }
+.mapfoot a { color: inherit; pointer-events: auto; }
+.scale { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-shadow: 0 0 3px var(--label-halo), 0 0 3px var(--label-halo); }
+.scale i { display: block; height: 5px; border: 1.5px solid var(--label-soft); border-top: 0; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 24px; z-index: 8; background: var(--map-ground); }
+.loading b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
+.loading .btn { margin-top: 12px; pointer-events: auto; }
+.toast { position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); border-radius: 9px; padding: 7px 8px 7px 12px; font-size: 12.5px; font-weight: 500; width: max-content; max-width: calc(100% - 116px); display: flex; align-items: center; gap: 10px; z-index: 9; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.toast button { border: 0; background: color-mix(in srgb, var(--surface) 18%, transparent); color: inherit; border-radius: 6px; padding: 3px 9px; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+.toast span { padding-right: 4px; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 100%; grid-template-rows: minmax(0, 47%) minmax(0, 53%); }
+  .stage { grid-column: 1; grid-row: 1; }
+  .panel { grid-column: 1; grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
+  .head { padding-block: 9px 8px; gap: 7px; }
+  .brand h1 { font-size: 17px; }
+  .brand span { display: none; }
+  .answer h2 { font-size: 18px; }
+  /* while someone types a place on a phone, the search takes the whole screen so the keyboard cannot cover the results */
+  .app.searching .panel { position: fixed; inset: 0; z-index: 20; border-top: 0; }
+  .app.searching .head, .app.searching .scroll > :not(.block), .app.searching .block > :not(.search) { display: none; }
+  .app.searching .scroll { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+  .app.searching .hits { max-height: 44vh; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <section class="panel" aria-label="Plan">
+    <div class="head pad">
+      <div class="brand"><h1>Hanoi Midpoint</h1><span>the fair place to meet</span></div>
+      <div class="opts">
+        <div class="seg" role="group" aria-label="How everyone travels">
+          <button type="button" id="mode-bike" aria-pressed="true">Motorbike</button>
+          <button type="button" id="mode-car" aria-pressed="false">Car</button>
+        </div>
+        <div class="seg" role="group" aria-label="What counts as best">
+          <button type="button" id="goal-fair" aria-pressed="true" title="Make the longest ride as short as possible">Fairest</button>
+          <button type="button" id="goal-total" aria-pressed="false" title="Make everyone's travel added together as small as possible">Least total</button>
+        </div>
+      </div>
+    </div>
+    <div class="scroll pad" id="scroll">
+      <div class="answer" id="answer" hidden>
+        <div>
+          <span class="label kick" id="answer-kicker">Meet here</span>
+          <h2 id="answer-title"></h2>
+          <p class="sub" id="answer-sub"></p>
+        </div>
+        <dl class="facts">
+          <div><dt>Longest ride</dt><dd id="f-max"></dd></div>
+          <div><dt title="Longest ride minus shortest ride">Biggest gap</dt><dd id="f-gap"></dd></div>
+          <div><dt>Everyone, total</dt><dd id="f-sum"></dd></div>
+        </dl>
+        <div class="actions">
+          <a class="btn solid" id="gmaps" target="_blank" rel="noopener">Open in Google Maps</a>
+          <button type="button" class="btn" id="copy">Copy plan for the group chat</button>
+        </div>
+        <textarea id="plan" class="plan" rows="7" readonly hidden aria-label="Plan text. Copy it from here."></textarea>
+      </div>
+      <div class="block">
+        <div class="row-between"><span class="label" id="people-label">Who's coming</span><button type="button" class="linkbtn" id="clear">Start fresh</button></div>
+        <p class="note" id="example-note" hidden>Example group. Tap <b>Start fresh</b>, then tap the map once for each friend.</p>
+        <ul class="people" id="people" aria-labelledby="people-label"></ul>
+        <div class="search">
+          <input id="search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Add a friend: street, alley, building, address" aria-label="Add a friend by street, alley, building or address">
+          <ul class="hits" id="hits" hidden></ul>
+          <p class="hint" id="hint">Can't find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.</p>
+        </div>
+      </div>
+      <button type="button" class="go" id="go" disabled>Find the spot</button>
+      <div class="answer" id="answer-more" hidden>
+        <div class="row-between">
+          <span class="label">Places near the midpoint</span>
+          <div class="seg" role="group" aria-label="Kind of place">
+            <button type="button" data-kind="0" aria-pressed="true">Café</button>
+            <button type="button" data-kind="1" aria-pressed="false">Food</button>
+            <button type="button" data-kind="2" aria-pressed="false">Bar</button>
+          </div>
+        </div>
+        <ul class="venues" id="venues"></ul>
+        <p class="tally" id="tally"></p>
+      </div>
+      <p class="foot">Ride times are off-peak estimates from road type and distance, with no live traffic. Roads, places and addresses © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
+    </div>
+  </section>
+  <section class="stage" id="stage" tabindex="0" aria-label="Map of Hanoi. Tap to add a friend. Arrow keys move the map, plus and minus zoom.">
+    <canvas class="layer" id="base"></canvas>
+    <canvas class="layer" id="over"></canvas>
+    <canvas class="layer" id="glow"></canvas>
+    <div class="pins" id="pins"></div>
+    <div class="ctl">
+      <button type="button" id="zin" aria-label="Zoom in">+</button>
+      <button type="button" id="zout" aria-label="Zoom out">−</button>
+      <button type="button" id="zfit" class="txt" aria-label="Fit everyone on the map">Fit</button>
+    </div>
+    <div class="chip" id="chip" hidden></div>
+    <div class="mapfoot"><div class="scale" id="scale" aria-hidden="true"><span></span><i></i></div><span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span></div>
+    <div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button type="button" id="toast-act" hidden></button></div>
+    <div class="loading" id="loading"><div><b>Loading Hanoi's roads</b><span id="loading-text">Streets, alleys and cafés for the whole city. After this, everything runs on your device.</span></div></div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const DATA_URL = 'hanoi-v2.json', PLACES_URL = 'hanoi-v2-places.json';   // the name changes whenever the data format does, so an old cached copy is never read
+const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E'];
+const MAX_PEOPLE = 8, MAX_NAME = 18, SNAP_LIMIT = 1500;
+// km/h by road class: motorway, trunk, primary, secondary, tertiary, local street, living street, alley
+const SPEED = { bike: [0, 30, 23, 21, 18, 15, 10, 8], car: [55, 32, 21, 19, 16, 11, 6, 5] };
+const EXAMPLE = [['Minh', 21.0362, 105.7906], ['Linh', 20.9716, 105.7788], ['Huy', 21.0477, 105.8889], ['Trang', 21.0637, 105.8272]];
+const KIND_LABEL = ['Area', 'Homes', 'School', 'Health', 'Shop', 'Transit', 'Sight', 'Address', 'Place'];
+const $ = id => document.getElementById(id);
+const app = $('app'), stage = $('stage'), base = $('base'), over = $('over'), glow = $('glow'), pinsEl = $('pins');
+const bctx = base.getContext('2d'), octx = over.getContext('2d'), gctx = glow.getContext('2d');
+const narrow = matchMedia('(max-width: 760px)');
+
+let G = null, IX = null;            // decoded city, and the place index that loads after it
+const state = { mode: 'bike', goal: 'fair', kind: 0, people: [], result: null, example: false, nextId: 1 };
+const view = { cx: 0, cy: 0, s: 0.03 }, drawn = { cx: 0, cy: 0, s: 0.03 };
+let W = 0, H = 0, DPR = 1, css = {};
+const perf = { decode: 0, solve: 0, base: 0 };
+
+/* ------------------------------------------------------------ helpers */
+const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+const fmtMin = sec => sec < 3570 ? Math.max(1, Math.round(sec / 60)) + ' min' : Math.floor(Math.round(sec / 60) / 60) + ' h ' + String(Math.round(sec / 60) % 60).padStart(2, '0');
+const fmtKm = m => (m < 9950 ? (m / 1000).toFixed(1) : Math.round(m / 1000)) + ' km';
+const nf = n => n.toLocaleString('en-US');
+const cleanName = s => [...String(s).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}]/gu, '').trim()].slice(0, MAX_NAME).join('');
+const initial = p => { const m = /^Friend (\d)$/.exec(p.name.trim()); return m ? m[1] : ([...p.name.trim()][0] || '?').toUpperCase(); };
+let toastT = 0;
+function toast(msg, action, fn) {
+  const t = $('toast'), b = $('toast-act'); $('toast-text').textContent = msg; t.hidden = false;
+  b.hidden = !action; if (action) { b.textContent = action; b.onclick = () => { t.hidden = true; fn(); }; }
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, action ? 5200 : 3200);
+}
+function readTheme() {
+  const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+  const la = g('--rl-a'), lb = g('--rl-b'), lc = g('--rl-c'), ld = g('--rl-d'), rf = g('--rf'), rfa = g('--rf-a');
+  css = { ground: g('--map-ground'), green: g('--map-green'), greenInk: g('--map-green-ink'), water: g('--map-water'), waterInk: g('--map-water-ink'),
+    line: [la, la, la, lb, lb, lc, lc, ld], fill: [rfa, rfa, rf, rf, rf, rf, rf, rf], casing: g('--rc'), rail: g('--rail'),
+    label: g('--label'), soft: g('--label-soft'), halo: g('--label-halo'), accent: g('--accent'), surface: g('--surface'),
+    frontAlpha: parseFloat(g('--front-alpha')) || .5, blend: g('--front-blend') || 'source-over', font: g('--font') };
+}
+
+/* ------------------------------------------------------------ decode */
+function decode(d) {
+  if (d.v !== 2) throw new Error('unexpected map data version');
+  const MY = 111320 / d.q, MX = MY * Math.cos(d.origin[0] * Math.PI / 180);
+  const V = d.vx.length, E = d.ea.length, NC = d.ec.length;
+  const px = new Float32Array(V), py = new Float32Array(V), vflag = new Uint8Array(V);
+  const qx = new Int32Array(V), qy = new Int32Array(V);
+  for (let i = 0, x = 0, y = 0; i < V; i++) { x += d.vx[i]; y += d.vy[i]; qx[i] = x; qy[i] = y; px[i] = x * MX; py[i] = -y * MY; vflag[i] = d.vf.charCodeAt(i) - 48; }
+  const ea = new Int32Array(E), eb = new Int32Array(E), ecls = new Uint8Array(E), eflag = new Uint8Array(E), ename = Int32Array.from(d.en), elen = new Float32Array(E);
+  for (let i = 0, a = 0; i < E; i++) { a += d.ea[i]; ea[i] = a; eb[i] = a + d.eb[i]; eflag[i] = d.ef.charCodeAt(i) - 48; }
+  for (let c = 0, i = 0; c < NC; c++) for (let k = 0; k < d.ec[c]; k++) ecls[i++] = c;
+  // geometry: every edge as a full polyline in metres
+  let total = 0; for (let i = 0, k = 0; i < E; i++) { const n = d.eg[k]; total += n + 2; k += 1 + n * 2; }
+  const goff = new Int32Array(E + 1), gx = new Float32Array(total), gy = new Float32Array(total);
+  const ex0 = new Float32Array(E), ey0 = new Float32Array(E), ex1 = new Float32Array(E), ey1 = new Float32Array(E);
+  for (let i = 0, k = 0, o = 0; i < E; i++) {
+    goff[i] = o; const n = d.eg[k++]; let x = qx[ea[i]], y = qy[ea[i]];
+    gx[o] = px[ea[i]]; gy[o] = py[ea[i]]; o++;
+    for (let j = 0; j < n; j++) { x += d.eg[k++]; y += d.eg[k++]; gx[o] = x * MX; gy[o] = -y * MY; o++; }
+    gx[o] = px[eb[i]]; gy[o] = py[eb[i]]; o++;
+    let L = 0, a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9;
+    for (let j = goff[i]; j < o; j++) { if (j > goff[i]) { const ux = gx[j] - gx[j - 1], uy = gy[j] - gy[j - 1]; L += Math.sqrt(ux * ux + uy * uy); } const X = gx[j], Y = gy[j]; if (X < a0) a0 = X; if (X > a1) a1 = X; if (Y < b0) b0 = Y; if (Y > b1) b1 = Y; }
+    elen[i] = Math.max(L, 1); ex0[i] = a0; ey0[i] = b0; ex1[i] = a1; ey1[i] = b1;
+  }
+  goff[E] = total;
+  // adjacency (CSR). An arc is one direction of travel along an edge.
+  const deg = new Int32Array(V + 1);
+  for (let i = 0; i < E; i++) { deg[ea[i] + 1]++; if (!(eflag[i] & 1)) deg[eb[i] + 1]++; }
+  for (let i = 0; i < V; i++) deg[i + 1] += deg[i];
+  const A = deg[V], arcTo = new Int32Array(A), arcEdge = new Int32Array(A), fill = deg.slice(0, V);
+  for (let i = 0; i < E; i++) { let k = fill[ea[i]]++; arcTo[k] = eb[i]; arcEdge[k] = i; if (!(eflag[i] & 1)) { k = fill[eb[i]]++; arcTo[k] = ea[i]; arcEdge[k] = i; } }
+  const wBike = new Float32Array(E), wCar = new Float32Array(E);
+  for (let i = 0; i < E; i++) {
+    wBike[i] = (eflag[i] & 2) || !SPEED.bike[ecls[i]] ? Infinity : elen[i] / (SPEED.bike[ecls[i]] / 3.6);
+    wCar[i] = (eflag[i] & 4) ? Infinity : elen[i] / (SPEED.car[ecls[i]] / 3.6);
+  }
+  // spatial grids
+  const bx0 = (d.bbox[1] - d.origin[1]) * d.q * MX, bx1 = (d.bbox[3] - d.origin[1]) * d.q * MX, by0 = -(d.bbox[2] - d.origin[0]) * d.q * MY, by1 = -(d.bbox[0] - d.origin[0]) * d.q * MY;
+  const CELL = 400, gw = Math.ceil((bx1 - bx0) / CELL) + 1, gh = Math.ceil((by1 - by0) / CELL) + 1;
+  const cellOf = (x, y) => Math.min(gw - 1, Math.max(0, Math.floor((x - bx0) / CELL))) + gw * Math.min(gh - 1, Math.max(0, Math.floor((y - by0) / CELL)));
+  const vCount = new Int32Array(gw * gh + 1);
+  for (let i = 0; i < V; i++) vCount[cellOf(px[i], py[i]) + 1]++;
+  for (let i = 0; i < gw * gh; i++) vCount[i + 1] += vCount[i];
+  const vCell = new Int32Array(V), vf = vCount.slice(0, gw * gh);
+  for (let i = 0; i < V; i++) vCell[vf[cellOf(px[i], py[i])]++] = i;
+  const eCount = new Int32Array(gw * gh + 1);
+  const span = (i, fn) => { const cx0 = Math.max(0, Math.floor((ex0[i] - bx0) / CELL)), cx1 = Math.min(gw - 1, Math.floor((ex1[i] - bx0) / CELL)), cy0 = Math.max(0, Math.floor((ey0[i] - by0) / CELL)), cy1 = Math.min(gh - 1, Math.floor((ey1[i] - by0) / CELL)); for (let y = cy0; y <= cy1; y++) for (let x = cx0; x <= cx1; x++) fn(x + gw * y); };
+  for (let i = 0; i < E; i++) span(i, c => { eCount[c + 1]++; });
+  for (let i = 0; i < gw * gh; i++) eCount[i + 1] += eCount[i];
+  const eCell = new Int32Array(eCount[gw * gh]), ef = eCount.slice(0, gw * gh);
+  for (let i = 0; i < E; i++) span(i, c => { eCell[ef[c]++] = i; });
+  // venues, areas, map shapes
+  const P = d.pn.length, pox = new Float32Array(P), poy = new Float32Array(P), pk = new Uint8Array(P);
+  for (let i = 0, x = 0, y = 0; i < P; i++) { x += d.px[i]; y += d.py[i]; pox[i] = x * MX; poy[i] = -y * MY; pk[i] = d.pk.charCodeAt(i) - 48; }
+  const areas = d.areas.map(p => ({ name: p[0], x: p[1] * MX, y: -p[2] * MY, rank: p[3] }));
+  const unflat = a => { const n = a.length / 2, xs = new Float32Array(n), ys = new Float32Array(n); for (let i = 0, x = 0, y = 0; i < n; i++) { x += a[2 * i]; y += a[2 * i + 1]; xs[i] = x * MX; ys[i] = -y * MY; } return { xs, ys }; };
+  const shape = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (!u.xs.length) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); } return path; };
+  const closed = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (u.xs.length < 3) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); path.closePath(); } return path; };
+  const streets = d.sn.map((n, i) => ({ name: d.names[n], ctx: d.sc[i] ? d.names[d.sc[i]] : '', x: d.sx[i] * MX, y: -d.sy[i] * MY }));
+  const lab = a => a.map(w => ({ name: w[0], x: w[1] * MX, y: -w[2] * MY, w: w[3] || 0, alt: w[4] || '' }));
+  return { MX, MY, q: d.q, origin: d.origin, V, E, NC, px, py, vflag, ea, eb, ecls, eflag, ename, elen, goff, gx, gy, ex0, ey0, ex1, ey1,
+    off: deg, arcTo, arcEdge, w: { bike: wBike, car: wCar }, bounds: [bx0, by0, bx1, by1], CELL, gw, gh, vCount, vCell, eCount, eCell,
+    names: d.names, P, pox, poy, pk, pn: d.pn, pvBike: Int32Array.from(d.pv), pvCar: Int32Array.from(d.pc), pkey: null, areas, akey: null, streets, skey: null, wkey: null, gkey: null,
+    water: closed(d.water), rivers: shape(d.rivers.filter((r, i) => d.rk[i] === '1')), canals: shape(d.rivers.filter((r, i) => d.rk[i] !== '1')),
+    green: closed(d.green), rail: shape(d.rail), runway: shape(d.runway), wlabels: lab(d.wlabels), glabels: lab(d.glabels),
+    stamp: new Int32Array(E), stampN: 0, where: new Map() };
+}
+function decodePlaces(d) {
+  const { MX, MY, CELL, gw, gh, bounds } = G, n0 = d.n.length, n1 = d.ah.length, N = n0 + n1;
+  const x = new Float32Array(N), y = new Float32Array(N), k = new Uint8Array(N), name = new Array(N);
+  for (let i = 0, qx = 0, qy = 0; i < n0; i++) { qx += d.x[i]; qy += d.y[i]; x[i] = qx * MX; y[i] = -qy * MY; k[i] = d.k.charCodeAt(i) - 48; name[i] = d.n[i]; }
+  for (let i = 0, qx = 0, qy = 0, s = 0; i < n1; i++) { qx += d.ax[i]; qy += d.ay[i]; s += d.ai[i]; const j = n0 + i; x[j] = qx * MX; y[j] = -qy * MY; k[j] = 7; name[j] = d.ah[i] + ' ' + d.as[s]; }
+  // grid over the named places (not the addresses) for map labels
+  const cellOf = i => Math.min(gw - 1, Math.max(0, Math.floor((x[i] - bounds[0]) / CELL))) + gw * Math.min(gh - 1, Math.max(0, Math.floor((y[i] - bounds[1]) / CELL)));
+  const count = new Int32Array(gw * gh + 1); for (let i = 0; i < n0; i++) count[cellOf(i) + 1]++;
+  for (let i = 0; i < gw * gh; i++) count[i + 1] += count[i];
+  const cell = new Int32Array(n0), f = count.slice(0, gw * gh); for (let i = 0; i < n0; i++) cell[f[cellOf(i)]++] = i;
+  const alt = new Array(N); for (let i = 0, j = 0; i < d.ti.length; i++) { j += d.ti[i]; alt[j] = d.tt[i]; }
+  return { N, n0, x, y, k, name, alt, key: null, altKey: null, count, cell };
+}
+const toXY = (lat, lon) => [(lon - G.origin[1]) * G.q * G.MX, -(lat - G.origin[0]) * G.q * G.MY];
+const toLatLon = (x, y) => [G.origin[0] - y / (G.q * G.MY), G.origin[1] + x / (G.q * G.MX)];
+const modeBit = () => state.mode === 'bike' ? 1 : 2;
+const venueV = i => state.mode === 'bike' ? G.pvBike[i] : G.pvCar[i];
+const inBounds = (x, y) => x >= G.bounds[0] && x <= G.bounds[2] && y >= G.bounds[1] && y <= G.bounds[3];
+
+function nearestVertex(x, y, bit) {
+  const { CELL, gw, gh, bounds, vCount, vCell, px, py, vflag } = G;
+  const cx = Math.floor((x - bounds[0]) / CELL), cy = Math.floor((y - bounds[1]) / CELL);
+  let best = Infinity, bi = -1;
+  for (let r = 0; r <= 6; r++) {
+    for (let yy = cy - r; yy <= cy + r; yy++) { if (yy < 0 || yy >= gh) continue;
+      for (let xx = cx - r; xx <= cx + r; xx++) { if (xx < 0 || xx >= gw || Math.max(Math.abs(xx - cx), Math.abs(yy - cy)) !== r) continue;
+        const c = xx + gw * yy;
+        for (let k = vCount[c]; k < vCount[c + 1]; k++) { const v = vCell[k]; if (!(vflag[v] & bit)) continue; const dd = (px[v] - x) ** 2 + (py[v] - y) ** 2; if (dd < best) { best = dd; bi = v; } }
+      } }
+    if (bi >= 0 && Math.sqrt(best) < r * CELL) break;
+  }
+  return { v: bi, d: Math.sqrt(best) };
+}
+function areaNear(x, y) {            // the ward if one is centred nearby, otherwise the closest named neighbourhood
+  let ward = '', wd = 2200 * 2200, other = '', od = 3500 * 3500;
+  for (const p of G.areas) { if (p.rank > 4 || p.rank < 2) continue; const dd = (p.x - x) ** 2 + (p.y - y) ** 2; if (p.rank === 2 && dd < wd) { wd = dd; ward = p.name; } if (dd < od) { od = dd; other = p.name; } }
+  return ward || other;
+}
+function describe(v) {            // "Phố Kim Mã, Phường Giảng Võ"
+  let out = G.where.get(v); if (out !== undefined) return out;
+  let street = '', sc = 99;
+  for (let k = G.off[v]; k < G.off[v + 1]; k++) { const e = G.arcEdge[k]; if (G.ename[e] && G.ecls[e] < sc) { sc = G.ecls[e]; street = G.names[G.ename[e]]; } }
+  if (!street) { let bd = 200 * 200; const c = Math.min(G.gw - 1, Math.max(0, Math.floor((G.px[v] - G.bounds[0]) / G.CELL))) + G.gw * Math.min(G.gh - 1, Math.max(0, Math.floor((G.py[v] - G.bounds[1]) / G.CELL)));
+    for (let k = G.eCount[c]; k < G.eCount[c + 1]; k++) { const e = G.eCell[k]; if (!G.ename[e]) continue; const dd = Math.min((G.px[G.ea[e]] - G.px[v]) ** 2 + (G.py[G.ea[e]] - G.py[v]) ** 2, (G.px[G.eb[e]] - G.px[v]) ** 2 + (G.py[G.eb[e]] - G.py[v]) ** 2); if (dd < bd) { bd = dd; street = G.names[G.ename[e]]; } } }
+  out = [street, areaNear(G.px[v], G.py[v])].filter(Boolean).join(', ') || 'Unnamed road';
+  G.where.set(v, out); return out;
+}
+
+/* ------------------------------------------------------------ route search */
+function dijkstra(src, w) {
+  const { V, off, arcTo, arcEdge } = G;
+  const dist = new Float32Array(V).fill(Infinity), par = new Int32Array(V).fill(-1);
+  let cap = 4096, hk = new Float32Array(cap), hv = new Int32Array(cap), n = 0;
+  const push = (k, v) => { if (n === cap) { cap *= 2; const a = new Float32Array(cap), b = new Int32Array(cap); a.set(hk); b.set(hv); hk = a; hv = b; } let i = n++; while (i > 0) { const p = (i - 1) >> 1; if (hk[p] <= k) break; hk[i] = hk[p]; hv[i] = hv[p]; i = p; } hk[i] = k; hv[i] = v; };
+  dist[src] = 0; push(0, src);
+  while (n) {
+    const d = hk[0], u = hv[0]; n--;
+    if (n) { const k = hk[n], v = hv[n]; let i = 0; for (;;) { let c = 2 * i + 1; if (c >= n) break; if (c + 1 < n && hk[c + 1] < hk[c]) c++; if (hk[c] >= k) break; hk[i] = hk[c]; hv[i] = hv[c]; i = c; } hk[i] = k; hv[i] = v; }
+    if (d > dist[u]) continue;
+    for (let a = off[u]; a < off[u + 1]; a++) { const e = arcEdge[a], nd = d + w[e]; const t = arcTo[a]; if (nd < dist[t]) { dist[t] = nd; par[t] = e; push(nd, t); } }
+  }
+  return { dist, par };
+}
+function pathTo(run, src, target) {         // edges from a friend to the meeting point, plus metres
+  const edges = []; let v = target, m = 0, guard = 0;
+  while (v !== src && run.par[v] >= 0 && guard++ < 2e5) { const e = run.par[v]; edges.push([e, G.eb[e] === v]); m += G.elen[e]; v = G.eb[e] === v ? G.ea[e] : G.eb[e]; }
+  return { edges: edges.reverse(), metres: m };
+}
+function snap(p) {                           // nearest road for the current way of travelling; the chosen point itself never moves
+  const h = nearestVertex(p.x, p.y, modeBit());
+  if (h.v < 0 || h.d > SNAP_LIMIT) return false;
+  const d = describe(h.v); p.v = h.v; p.snapD = h.d; p.where = p.label && !d.startsWith(p.label) ? p.label + ' · ' + d : d; return true;
+}
+function solve() {
+  const t0 = performance.now(), bit = modeBit(), w = G.w[state.mode], ppl = state.people, n = ppl.length, V = G.V, E = G.E;
+  const runs = ppl.map(p => { if (!p.run || p.run.v !== p.v || p.run.mode !== state.mode) p.run = { v: p.v, mode: state.mode, r: dijkstra(p.v, w) }; return p.run.r; });
+  const worst = new Float32Array(V), sum = new Float32Array(V), vflag = G.vflag, fair = state.goal === 'fair';
+  let lo = Infinity, best = -1, bs = Infinity;
+  for (let v = 0; v < V; v++) {
+    let mx = 0, s = 0; for (let i = 0; i < n; i++) { const d = runs[i].dist[v]; if (d > mx) mx = d; s += d; }
+    worst[v] = mx; sum[v] = s;
+    if (!(vflag[v] & bit) || mx === Infinity) continue;
+    if (mx < lo) lo = mx;
+    if (!fair && s < bs) { bs = s; best = v; }
+  }
+  if (lo === Infinity) return null;
+  // fairest: among points within 20 seconds of the shortest possible longest ride, take the lowest total
+  if (fair) for (let v = 0; v < V; v++) if ((vflag[v] & bit) && worst[v] <= lo + 20 && sum[v] < bs) { bs = sum[v]; best = v; }
+  const stop = worst[best];
+  // when each search reaches each road, for the animation, the overlay and the tally
+  const NB = 480, ea = G.ea, eb = G.eb;
+  let checked = 0, usable = 0;
+  for (let e = 0; e < E; e++) if (w[e] !== Infinity && runs[0].dist[ea[e]] !== Infinity) usable++;
+  const fronts = runs.map(r => {
+    const t = new Float32Array(E), cnt = new Int32Array(NB + 2), dist = r.dist; let c = 0;
+    for (let e = 0; e < E; e++) { const a = dist[ea[e]], b = dist[eb[e]], m = w[e] === Infinity ? Infinity : (a > b ? a : b); t[e] = m; if (m <= stop) { c++; cnt[(stop > 0 ? Math.min(NB - 1, (m / stop * NB) | 0) : 0) + 1]++; } }
+    for (let b = 0; b <= NB; b++) cnt[b + 1] += cnt[b];
+    const ord = new Int32Array(c), f = cnt.slice(0, NB + 1);
+    for (let e = 0; e < E; e++) if (t[e] <= stop) ord[f[stop > 0 ? Math.min(NB - 1, (t[e] / stop * NB) | 0) : 0]++] = e;
+    checked += c; return { t, ord, start: cnt };
+  });
+  perf.solve = performance.now() - t0;
+  return { runs, worst, sum, best, stop, NB, fronts, checked, oneByOne: usable * n, target: null, venues: [], paths: [], mode: state.mode, goal: state.goal };
+}
+function rankVenues(res) {
+  const key = state.goal === 'fair' ? res.worst : res.sum, list = [];
+  if (!G.pkey) G.pkey = G.pn.map(fold);
+  for (let i = 0; i < G.P; i++) { if (G.pk[i] !== state.kind) continue; const v = venueV(i); if (v < 0 || res.worst[v] === Infinity) continue; list.push(i); }
+  list.sort((a, b) => key[venueV(a)] - key[venueV(b)] || res.sum[venueV(a)] - res.sum[venueV(b)]);
+  const out = [];
+  for (const i of list) { if (out.length === 6) break; if (out.some(o => G.pkey[o] === G.pkey[i] && Math.hypot(G.pox[o] - G.pox[i], G.poy[o] - G.poy[i]) < 150)) continue; out.push(i); }
+  res.venues = out;
+}
+function setTarget(t) {                     // t: {kind:'venue', i} or {kind:'exact'}
+  const res = state.result; if (!res) return;
+  const v = t.kind === 'venue' ? venueV(t.i) : res.best;
+  res.target = { ...t, v, x: t.kind === 'venue' ? G.pox[t.i] : G.px[v], y: t.kind === 'venue' ? G.poy[t.i] : G.py[v] };
+  res.paths = state.people.map((p, i) => pathTo(res.runs[i], p.v, v));
+  renderPanel(); renderMarks(); drawOverlay(Infinity);
+}
+
+/* ------------------------------------------------------------ people */
+function freeName() { for (let n = 1; ; n++) if (!state.people.some(p => p.name === 'Friend ' + n)) return 'Friend ' + n; }
+function addPerson(x, y, name, opts) {       // returns the person, or null with a reason shown
+  opts = opts || {};
+  if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast('Up to ' + MAX_PEOPLE + ' friends at a time'); return null; }
+  const used = new Set(state.people.map(p => p.color));
+  const p = { id: state.nextId++, name: cleanName(name || '') || freeName(), x, y, v: -1, snapD: 0, color: COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null };
+  if (typeof x !== 'number' || typeof y !== 'number' || !inBounds(x, y) || !snap(p)) { if (!opts.quiet) toast('That is outside the mapped part of Hanoi'); return null; }
+  state.people.push(p); return p;
+}
+let autoT = 0, live = false;             // live: an answer was showing, so keep one showing
+function changed(keepView) {                 // people, mode or goal changed
+  const had = !!state.result || live; state.result = null; cancelAnimationFrame(animRaf); clearTimeout(autoT); animating = false; clearGlow(); $('chip').hidden = true; $('plan').hidden = true;
+  renderPanel(); renderPins(); renderMarks(); drawOverlay(0); writeHash();
+  live = had && state.people.length >= 2;
+  if (live) autoT = setTimeout(() => run(false, keepView), 60);   // once an answer is showing, keep it up to date
+}
+function resnapAll() { for (const p of state.people) snap(p); }
+function removePerson(p) {
+  const i = state.people.indexOf(p); if (i < 0) return;
+  state.people.splice(i, 1); state.example = false; changed(true);
+  toast(p.name + ' removed', 'Undo', () => { if (state.people.length < MAX_PEOPLE && !state.people.includes(p)) { state.people.splice(Math.min(i, state.people.length), 0, p); snap(p); changed(true); } });
+}
+
+/* ------------------------------------------------------------ panel */
+function renderPanel() {
+  const res = state.result, ul = $('people'), act = document.activeElement, keep = act && act.dataset && act.dataset.pid ? [act.dataset.pid, act.selectionStart] : null;
+  ul.textContent = '';
+  const times = res && res.target ? state.people.map((p, i) => res.runs[i].dist[res.target.v]) : null, tmax = times ? Math.max(...times) : 0;
+  const longest = times ? times.indexOf(tmax) : -1;
+  state.people.forEach((p, i) => {
+    const li = document.createElement('li'); li.className = 'person';
+    const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = p.color; dot.textContent = initial(p);
+    const who = document.createElement('div'); who.className = 'who';
+    const inp = document.createElement('input'); inp.id = 'name-' + p.id; inp.dataset.pid = p.id; inp.value = p.name; inp.maxLength = MAX_NAME; inp.setAttribute('aria-label', 'Name'); inp.autocomplete = 'off';
+    inp.addEventListener('input', () => { p.name = inp.value; dot.textContent = initial(p); renderPins(); writeHash(); });
+    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    const wh = document.createElement('span'); wh.className = 'where'; wh.textContent = p.where; wh.title = p.where;
+    who.append(inp, wh);
+    if (times) { const bar = document.createElement('div'); bar.className = 'bar'; const f = document.createElement('i'); f.style.background = p.color; f.style.width = (tmax > 0 ? Math.max(3, times[i] / tmax * 100) : 3) + '%'; bar.append(f); who.append(bar); }
+    const trip = document.createElement('div'); trip.className = 'trip' + (i === longest && state.people.length > 1 && tmax > 0 ? ' long' : '');
+    if (times) { const b = document.createElement('b'); b.textContent = fmtMin(times[i]); trip.append(b, fmtKm(res.paths[i].metres)); }
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + p.name);
+    x.addEventListener('click', () => removePerson(p));
+    li.append(dot, who, trip, x); ul.append(li);
+  });
+  if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
+  $('example-note').hidden = !state.example;
+  $('clear').hidden = !state.people.length;
+  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = 'Nobody yet. Tap the map where each friend is coming from, or search below.'; ul.append(li); }
+  const go = $('go'); go.disabled = state.people.length < 2; go.classList.toggle('stale', !res && state.people.length >= 2);
+  go.textContent = state.people.length < 2 ? (state.people.length ? 'Add one more friend' : 'Add at least two friends') : res ? 'Replay the search' : 'Find the spot';
+  $('answer').hidden = $('answer-more').hidden = !times;
+  if (!times) return;
+  const t = res.target;
+  $('answer-kicker').textContent = t.kind === 'venue' ? 'Meet here' : 'Exact midpoint';
+  $('answer-title').textContent = t.kind === 'venue' ? G.pn[t.i] : 'Near ' + describe(t.v);
+  $('answer-sub').textContent = t.kind === 'venue' ? describe(t.v) : 'The point on the roads that best balances everyone';
+  const tmin = Math.min(...times);
+  $('f-max').textContent = fmtMin(tmax); $('f-gap').textContent = tmax - tmin < 30 ? 'none' : fmtMin(tmax - tmin); $('f-sum').textContent = fmtMin(times.reduce((a, b) => a + b, 0));
+  $('gmaps').href = mapsLink(t);
+  const vl = $('venues'); vl.textContent = '';
+  const row = (label, title, sub, v, pressed, onClick) => {
+    const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', pressed);
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = label;
+    const vn = document.createElement('span'); vn.className = 'vn'; const bb = document.createElement('b'); bb.textContent = title; const ss = document.createElement('span'); ss.textContent = sub; vn.append(bb, ss);
+    const vt = document.createElement('span'); vt.className = 'vt'; const m = document.createElement('b'); m.textContent = fmtMin(res.worst[v]); vt.append('longest ', m);
+    b.append(n, vn, vt); b.addEventListener('click', onClick); li.append(b); vl.append(li);
+  };
+  res.venues.forEach((i, k) => row(String(k + 1), G.pn[i], describe(venueV(i)), venueV(i), t.kind === 'venue' && t.i === i, () => setTarget({ kind: 'venue', i })));
+  if (!res.venues.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = 'OpenStreetMap has no place of this kind near the midpoint. Try another kind.'; vl.append(li); }
+  row('◎', 'Exact midpoint', 'Near ' + describe(res.best), res.best, t.kind === 'exact', () => setTarget({ kind: 'exact' }));
+  const ty = $('tally'); ty.textContent = '';
+  if (res.checked > 0) ty.append('Searching from everyone at once checked ', Object.assign(document.createElement('b'), { textContent: nf(res.checked) }), ' road segments before the searches met. Mapping the whole city for each friend in turn would check ', Object.assign(document.createElement('b'), { textContent: nf(res.oneByOne) }), '.');
+  else ty.append('Everyone starts from the same spot, so there was nothing to search.');
+}
+const mapsLink = t => { const ll = toLatLon(t.x, t.y); return 'https://www.google.com/maps/search/?api=1&query=' + ll[0].toFixed(5) + ',' + ll[1].toFixed(5); };
+function planText() {
+  const res = state.result, t = res.target, times = state.people.map((p, i) => res.runs[i].dist[t.v]);
+  const lines = ['Meet at ' + (t.kind === 'venue' ? G.pn[t.i] + ' (' + describe(t.v) + ')' : 'the midpoint near ' + describe(t.v)), mapsLink(t), ''];
+  state.people.forEach((p, i) => lines.push(p.name + ': ' + fmtKm(res.paths[i].metres) + ', about ' + fmtMin(times[i])));
+  lines.push('', 'Longest ride ' + fmtMin(Math.max(...times)) + ' by ' + (state.mode === 'bike' ? 'motorbike' : 'car') + ' (off-peak estimate, no live traffic)');
+  return lines.join('\n');
+}
+
+/* ------------------------------------------------------------ map: view */
+function resize() {
+  const r = stage.getBoundingClientRect(); W = r.width; H = r.height; DPR = Math.min(2, window.devicePixelRatio || 1);
+  if (W < 8 || H < 8) return;
+  const cw = Math.round(W * 1.5 * DPR), ch = Math.round(H * 1.5 * DPR);
+  if (base.width !== cw || base.height !== ch) for (const c of [base, over, glow]) { c.width = cw; c.height = ch; }
+  if (G) { clampView(); fullRender(); }
+}
+function clampView() {
+  const b = G.bounds, minS = Math.min(W / (b[2] - b[0]), H / (b[3] - b[1])) * 0.9;
+  view.s = Math.min(7, Math.max(minS, view.s)) || minS;
+  view.cx = Math.min(b[2], Math.max(b[0], view.cx)) || 0; view.cy = Math.min(b[3], Math.max(b[1], view.cy)) || 0;
+}
+const sx = x => (x - view.cx) * view.s + W / 2, sy = y => (y - view.cy) * view.s + H / 2;
+const wx = px => (px - W / 2) / view.s + view.cx, wy = py => (py - H / 2) / view.s + view.cy;
+let renderT = 0;
+function viewChanged() {
+  if (W < 8) return; clampView();
+  const k = view.s / drawn.s, tx = (drawn.cx - view.cx) * view.s, ty = (drawn.cy - view.cy) * view.s;
+  base.style.transform = over.style.transform = glow.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')';
+  placeDom(); clearTimeout(renderT); renderT = setTimeout(fullRender, 70);
+}
+function fullRender(quiet) {
+  if (W < 8) return;
+  epoch++; clearTimeout(renderT); drawn.cx = view.cx; drawn.cy = view.cy; drawn.s = view.s;
+  base.style.transform = over.style.transform = glow.style.transform = '';
+  drawBase(); if (!animating && quiet !== true) drawOverlay(Infinity); placeDom(); drawScale();
+}
+function fit(points) {
+  if (W < 8) return;
+  if (!points.length) { const b = G.bounds; points = [[b[0], b[1]], [b[2], b[3]]]; }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of points) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  // room for what sticks out of a pin: its name to the right, its body above, and the zoom buttons in the top right corner
+  const small = W < 420, mL = small ? 30 : 56, mR = small ? 108 : 132, mT = 72, mB = 44;
+  view.s = Math.min(0.6, Math.max(80, W - mL - mR) / Math.max(x1 - x0, 400), Math.max(80, H - mT - mB) / Math.max(y1 - y0, 400));
+  view.cx = (x0 + x1) / 2 - (mL - mR) / 2 / view.s; view.cy = (y0 + y1) / 2 - (mT - mB) / 2 / view.s;
+  viewChanged();
+}
+function zoomAt(f, px, py) { const mx = wx(px), my = wy(py); view.s *= f; clampView(); view.cx = mx - (px - W / 2) / view.s; view.cy = my - (py - H / 2) / view.s; viewChanged(); }
+function drawScale() {
+  const el = $('scale'), max = 110 / view.s; let m = 1; for (const c of [2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]) if (c <= max) m = c;
+  el.firstChild.textContent = m >= 1000 ? m / 1000 + ' km' : m + ' m'; el.lastChild.style.width = Math.round(m * view.s) + 'px';
+}
+
+/* canvas space: the canvases are 1.5x the stage, centred on it */
+function begin(ctx) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.setLineDash([]); ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); const k = drawn.s * DPR; ctx.setTransform(k, 0, 0, k, ctx.canvas.width / 2 - drawn.cx * k, ctx.canvas.height / 2 - drawn.cy * k); }
+const lodClass = s => s < 0.02 ? 2 : s < 0.035 ? 3 : s < 0.075 ? 4 : s < 0.22 ? 6 : 7;
+function drawnRect() { const hw = W * 0.75 / drawn.s, hh = H * 0.75 / drawn.s; return [drawn.cx - hw, drawn.cy - hh, drawn.cx + hw, drawn.cy + hh]; }
+function visibleEdges(maxCls, fn) {
+  const [x0, y0, x1, y1] = drawnRect();
+  const { CELL, gw, gh, bounds, eCount, eCell, stamp, ecls, ex0, ex1, ey0, ey1 } = G, s = ++G.stampN;
+  const cx0 = Math.max(0, Math.floor((x0 - bounds[0]) / CELL)), cx1 = Math.min(gw - 1, Math.floor((x1 - bounds[0]) / CELL)), cy0 = Math.max(0, Math.floor((y0 - bounds[1]) / CELL)), cy1 = Math.min(gh - 1, Math.floor((y1 - bounds[1]) / CELL));
+  for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) { const c = cx + gw * cy; for (let k = eCount[c]; k < eCount[c + 1]; k++) { const e = eCell[k]; if (ecls[e] > maxCls || stamp[e] === s) continue; stamp[e] = s; if (ex1[e] < x0 || ex0[e] > x1 || ey1[e] < y0 || ey0[e] > y1) continue; fn(e); } }
+}
+function traceEdge(ctx, e, rough) {
+  const { goff, gx, gy } = G, a = goff[e], b = goff[e + 1];
+  ctx.moveTo(gx[a], gy[a]);
+  if (rough) ctx.lineTo(gx[b - 1], gy[b - 1]); else for (let j = a + 1; j < b; j++) ctx.lineTo(gx[j], gy[j]);
+}
+const ROAD_M = [20, 17, 15, 12, 10, 7, 5.5, 3.2], ROAD_MIN = [2.6, 2.3, 1.9, 1.4, 1.1, 0.7, 0.7, 0.55];
+function drawBase() {
+  const t0 = performance.now(), ctx = bctx, s = drawn.s, px = 1 / s;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.fillStyle = css.ground; ctx.fillRect(0, 0, base.width, base.height);
+  const k = s * DPR; ctx.setTransform(k, 0, 0, k, base.width / 2 - drawn.cx * k, base.height / 2 - drawn.cy * k);
+  ctx.lineJoin = ctx.lineCap = 'round';
+  ctx.fillStyle = css.green; ctx.fill(G.green, 'evenodd');
+  ctx.fillStyle = css.water; ctx.fill(G.water, 'evenodd');
+  ctx.strokeStyle = css.water; ctx.lineWidth = Math.max(2 * px, 14); ctx.stroke(G.rivers);
+  ctx.lineWidth = Math.max(1.2 * px, 5); ctx.stroke(G.canals);
+  ctx.strokeStyle = css.line[7]; ctx.lineWidth = Math.max(3 * px, 40); ctx.lineCap = 'butt'; ctx.stroke(G.runway); ctx.lineCap = 'round';
+  if (s >= 0.03) { ctx.strokeStyle = css.rail; ctx.lineWidth = 1.3 * px; ctx.setLineDash([7 * px, 5 * px]); ctx.stroke(G.rail); ctx.setLineDash([]); }
+  const maxCls = lodClass(s), groups = []; for (let c = 0; c < G.NC; c++) groups.push([]);
+  visibleEdges(maxCls, e => groups[G.ecls[e]].push(e));
+  const paths = [], wpx = [];
+  for (let c = 0; c < G.NC; c++) { wpx[c] = Math.max(ROAD_MIN[c], ROAD_M[c] * s); const p = new Path2D(), rough = c >= 5 && s < 0.12; for (const e of groups[c]) traceEdge(p, e, rough); paths[c] = p; }
+  for (let c = G.NC - 1; c >= 0; c--) if (groups[c].length && wpx[c] < 3.2) { ctx.strokeStyle = css.line[c]; ctx.lineWidth = wpx[c] * px; ctx.stroke(paths[c]); }
+  for (let c = G.NC - 1; c >= 0; c--) if (groups[c].length && wpx[c] >= 3.2) { ctx.strokeStyle = css.casing; ctx.lineWidth = (wpx[c] + 2) * px; ctx.stroke(paths[c]); }
+  for (let c = G.NC - 1; c >= 0; c--) if (groups[c].length && wpx[c] >= 3.2) { ctx.strokeStyle = css.fill[c]; ctx.lineWidth = wpx[c] * px; ctx.stroke(paths[c]); }
+  drawLabels(groups); perf.base = performance.now() - t0;
+}
+function drawLabels(groups) {
+  const ctx = bctx, s = drawn.s; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const cw = base.width / DPR, ch = base.height / DPR, ox = cw / 2, oy = ch / 2, X = x => (x - drawn.cx) * s + ox, Y = y => (y - drawn.cy) * s + oy;
+  const boxes = [], free = (x, y, w, h) => { for (const b of boxes) if (x < b[0] + b[2] && x + w > b[0] && y < b[1] + b[3] && y + h > b[1]) return false; boxes.push([x, y, w, h]); return true; };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  const onScreen = (x, y) => x > -80 && y > -20 && x < cw + 80 && y < ch + 20;
+  const text = (t, x, y, size, weight, color, o) => {
+    o = o || {}; if (!onScreen(x, y)) return false;
+    if (o.caps) t = t.toUpperCase();
+    ctx.font = (o.italic ? 'italic ' : '') + weight + ' ' + size + 'px ' + css.font; try { ctx.letterSpacing = o.caps ? '0.7px' : '0px'; } catch (e) {}
+    const w = ctx.measureText(t).width + 12, bx = o.left ? x - 5 : x - w / 2; if (!free(bx, y - size * 0.85, w + (o.left ? 8 : 0), size * 1.7)) return false;
+    ctx.textAlign = o.left ? 'left' : 'center'; ctx.strokeStyle = css.halo; ctx.lineWidth = 3.5; ctx.strokeText(t, x + (o.left ? 7 : 0), y); ctx.fillStyle = color; ctx.fillText(t, x + (o.left ? 7 : 0), y);
+    if (o.dot) { ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fillStyle = color; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = css.halo; ctx.stroke(); }
+    return true;
+  };
+  const seen = new Set(), short = n => n.replace(/^(Phường|Xã|Thị trấn|Quận|Huyện) /, '');
+  for (const p of G.areas) { if (p.rank > 2) break; if (p.rank === 2 && s < 0.016) continue; const n = short(p.name), key = n.toLowerCase(); if (seen.has(key)) continue;
+    if (text(n, X(p.x), Y(p.y), p.rank < 2 ? 13.5 : 11, 600, p.rank < 2 ? css.label : css.soft, { caps: p.rank === 2 })) seen.add(key); }
+  G.wlabels.forEach((w, i) => { if (i < 5 || (s >= 0.06 && w.w > 2.5e5) || s >= 0.14) text(w.name, X(w.x), Y(w.y), 11.5, 500, css.waterInk, { italic: true }); });
+  G.glabels.forEach((w, i) => { if ((s >= 0.05 && i < 8) || s >= 0.14) text(w.name, X(w.x), Y(w.y), 11, 500, css.greenInk); });
+  if (s >= 0.05) { const maxRank = s < 0.09 ? 3 : 4; for (const p of G.areas) { if (p.rank <= 2) continue; if (p.rank > maxRank) break; const key = short(p.name).toLowerCase(); if (seen.has(key)) continue; if (text(p.name, X(p.x), Y(p.y), 11, 500, css.soft)) seen.add(key); } }
+  if (s >= 0.16) {                       // street names, along the street
+    const pick = new Map(), run = new Map(), top = s >= 1.1 ? 7 : s >= 0.4 ? 6 : 4;      // run: metres of each named street in view, since junctions cut big streets into short pieces
+    for (let c = 0; c <= top; c++) for (const e of groups[c]) { const n = G.ename[e]; if (!n) continue; run.set(n, (run.get(n) || 0) + G.elen[e]); const cur = pick.get(n); if (cur === undefined || G.elen[e] > G.elen[cur]) pick.set(n, e); }
+    let count = 0; ctx.textAlign = 'center'; try { ctx.letterSpacing = '0px'; } catch (e) {}
+    for (const [n, e] of pick) { if (count > 90) break; const name = G.names[n], minor = G.ecls[e] >= 5; ctx.font = (minor ? '400 10px ' : '500 10.5px ') + css.font; const tw = ctx.measureText(name).width; if (run.get(n) * s < tw * 1.1 || G.elen[e] * s < tw * (minor ? 0.45 : 0.12)) continue;
+      const a = G.goff[e], b = G.goff[e + 1] - 1, m = (a + b) >> 1, m2 = Math.min(b, m + 1), x = X((G.gx[m] + G.gx[m2]) / 2), y = Y((G.gy[m] + G.gy[m2]) / 2);
+      if (!onScreen(x, y)) continue;
+      let ang = Math.atan2(G.gy[b] - G.gy[a], G.gx[b] - G.gx[a]); if (ang > Math.PI / 2) ang -= Math.PI; if (ang < -Math.PI / 2) ang += Math.PI;
+      const bw = Math.abs(Math.cos(ang)) * tw + Math.abs(Math.sin(ang)) * 12 + 8, bh = Math.abs(Math.sin(ang)) * tw + Math.abs(Math.cos(ang)) * 12 + 8;
+      if (!free(x - bw / 2, y - bh / 2, bw, bh)) continue;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.strokeStyle = css.halo; ctx.lineWidth = 3; ctx.strokeText(name, 0, 0); ctx.fillStyle = minor ? css.soft : css.label; ctx.fillText(name, 0, 0); ctx.restore(); count++; }
+  }
+  if (IX && s >= 0.7) {                  // named buildings and places, close in
+    const [x0, y0, x1, y1] = drawnRect(), { CELL, gw, gh, bounds } = G, all = s >= 1.5;
+    const cx0 = Math.max(0, Math.floor((x0 - bounds[0]) / CELL)), cx1 = Math.min(gw - 1, Math.floor((x1 - bounds[0]) / CELL)), cy0 = Math.max(0, Math.floor((y0 - bounds[1]) / CELL)), cy1 = Math.min(gh - 1, Math.floor((y1 - bounds[1]) / CELL));
+    let count = 0;
+    for (let pass = 0; pass < 2 && count < 80; pass++) for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) { const c = cx + gw * cy;
+      for (let k = IX.count[c]; k < IX.count[c + 1] && count < 80; k++) { const i = IX.cell[k], kd = IX.k[i]; if (kd === 0) continue; const major = kd === 1 || kd === 2 || kd === 5 || kd === 6; if ((pass === 0) !== major || (!major && !all)) continue;
+        if (text(IX.name[i], X(IX.x[i]), Y(IX.y[i]), 10.5, 500, css.soft, { left: true, dot: true })) count++; } }
+  }
+}
+
+/* ------------------------------------------------------------ map: overlay (search fronts, routes) */
+let animating = false, animRaf = 0, epoch = 0, userRun = false;
+function frontStyle(ctx, alpha, width) { ctx.globalCompositeOperation = css.blend; ctx.globalAlpha = alpha; ctx.lineWidth = width / drawn.s; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
+function strokeFront(ctx, i, from, to, rect, maxCls, rough) {
+  const f = state.result.fronts[i], { ecls, ex0, ex1, ey0, ey1 } = G; ctx.beginPath();
+  for (let k = from; k < to; k++) { const e = f.ord[k]; if (ecls[e] > maxCls || ex1[e] < rect[0] || ex0[e] > rect[2] || ey1[e] < rect[1] || ey0[e] > rect[3]) continue; traceEdge(ctx, e, rough); }
+  ctx.strokeStyle = state.people[i].color; ctx.stroke();
+}
+function clearGlow() { gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.clearRect(0, 0, glow.width, glow.height); }
+function drawOverlay(t) {                  // t = 0 clears; Infinity = finished state
+  if (W < 8) return;
+  const ctx = octx, res = state.result; begin(ctx);
+  const px = 1 / drawn.s;
+  if (res && t > 0) {
+    const n = state.people.length, groups = state.people.map(() => []), stop = res.stop, fr = res.fronts, rough = drawn.s < 0.2;
+    visibleEdges(lodClass(drawn.s), e => { for (let i = 0; i < n; i++) if (fr[i].t[e] <= stop) groups[i].push(e); });
+    frontStyle(ctx, css.frontAlpha * 0.5, 1.1);
+    groups.forEach((g, i) => { if (!g.length) return; ctx.beginPath(); for (const e of g) traceEdge(ctx, e, rough); ctx.strokeStyle = state.people[i].color; ctx.stroke(); });
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  }
+  ctx.lineJoin = ctx.lineCap = 'round';
+  if (res && res.target && t === Infinity) {
+    const trace = p => { ctx.beginPath(); for (const [e, fwd] of p.edges) { const a = G.goff[e], b = G.goff[e + 1]; if (fwd) for (let j = a; j < b; j++) ctx.lineTo(G.gx[j], G.gy[j]); else for (let j = b - 1; j >= a; j--) ctx.lineTo(G.gx[j], G.gy[j]); } };
+    res.paths.forEach(p => { if (!p.edges.length) return; trace(p); ctx.strokeStyle = css.surface; ctx.lineWidth = 7.5 * px; ctx.stroke(); });
+    res.paths.forEach((p, i) => { if (!p.edges.length) return; trace(p); ctx.strokeStyle = state.people[i].color; ctx.lineWidth = 4 * px; ctx.setLineDash(i % 2 ? [10 * px, 7 * px] : []); ctx.lineDashOffset = i * 5 * px; ctx.stroke(); });
+    ctx.setLineDash([]);
+  }
+  // a short dotted link from where someone actually is to the road they join
+  for (const p of state.people) { if (p.snapD < 25 || p.v < 0) continue; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(G.px[p.v], G.py[p.v]); ctx.strokeStyle = p.color; ctx.lineWidth = 2 * px; ctx.setLineDash([1 * px, 5 * px]); ctx.stroke(); ctx.setLineDash([]); }
+}
+function animate() {
+  const res = state.result, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  cancelAnimationFrame(animRaf); clearTimeout(renderT); fullRender(true);
+  if (reduce || res.stop < 1) { animating = false; $('chip').hidden = true; finish(); return; }
+  const chip = $('chip'); chip.hidden = false;
+  animating = true; drawOverlay(0); const T = 2600, t0 = performance.now(), last = res.fronts.map(() => 0), NB = res.NB;
+  let mine = epoch, rect = drawnRect(), maxCls = lodClass(drawn.s), rough = drawn.s < 0.2;
+  const reset = () => { mine = epoch; rect = drawnRect(); maxCls = lodClass(drawn.s); rough = drawn.s < 0.2; drawOverlay(0); last.fill(0); };
+  let ended = false;
+  const step = now => {
+    if (ended || state.result !== res) return;
+    const p = Math.min(1, (now - t0) / T), q = 1 - Math.pow(1 - p, 1.6), b = Math.min(NB, Math.floor(q * NB) + (p >= 1 ? 1 : 0));
+    if (mine !== epoch) reset();
+    begin(gctx); let n = 0;
+    frontStyle(octx, css.frontAlpha, 1.1);
+    res.fronts.forEach((f, i) => { const to = f.start[b]; if (to > last[i]) strokeFront(octx, i, last[i], to, rect, maxCls, rough); last[i] = to; n += to; });
+    octx.globalAlpha = 1; octx.globalCompositeOperation = 'source-over';
+    if (p < 1) { gctx.globalAlpha = 0.9; gctx.lineWidth = 2.4 / drawn.s; gctx.lineCap = 'round'; res.fronts.forEach((f, i) => strokeFront(gctx, i, f.start[Math.max(0, b - 14)], f.start[b], rect, maxCls, rough)); }
+    chip.textContent = ''; chip.append('Searching from all ' + state.people.length + ' at once · ', Object.assign(document.createElement('b'), { textContent: nf(n) }), ' roads · ', Object.assign(document.createElement('b'), { textContent: fmtMin(res.stop * q) }), ' out');
+    if (p < 1) animRaf = requestAnimationFrame(step); else { ended = true; animating = false; clearGlow(); setTimeout(() => { if (!animating) chip.hidden = true; }, 1800); finish(); }
+  };
+  animRaf = requestAnimationFrame(step);
+  setTimeout(() => step(performance.now()), T + 250);      // a tab in the background gets no animation frames; still finish with the answer
+}
+function finish() { const r = state.result; rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); writeHash(); if (userRun) { userRun = false; $('scroll').scrollTo({ top: 0, behavior: 'smooth' }); } }
+function run(animated, keepView) {
+  clearTimeout(autoT); live = false;
+  if (!G || state.people.length < 2) return;
+  cancelAnimationFrame(animRaf); animating = false; clearGlow();
+  const res = solve();
+  if (!res) { state.result = null; renderPanel(); renderMarks(); drawOverlay(0); toast('No road connects everyone. Move a pin closer to a main road.'); return; }
+  state.result = res;
+  if (!keepView) fit(state.people.map(p => [p.x, p.y]).concat([[G.px[res.best], G.py[res.best]]]));
+  if (animated && W >= 8) { renderMarks(); renderPanel(); animate(); } else { $('chip').hidden = true; finish(); }
+}
+
+/* ------------------------------------------------------------ map: pins and markers (DOM) */
+function renderPins() {
+  for (const el of [...pinsEl.querySelectorAll('.pin')]) el.remove();
+  for (const p of state.people) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pin'; b.dataset.id = p.id; b.setAttribute('aria-label', p.name + ', ' + p.where + '. Drag to move.');
+    const i = document.createElement('i'); i.style.background = p.color; const l = document.createElement('b'); l.textContent = initial(p); i.append(l);
+    const s = document.createElement('span'); s.textContent = p.name; b.append(i, s); pinsEl.append(b);
+    b.addEventListener('pointerdown', ev => startPinDrag(ev, p, b));
+  }
+  placeDom();
+}
+function renderMarks() {
+  for (const el of [...pinsEl.querySelectorAll('.mark')]) el.remove();
+  const res = state.result; if (!res || !res.target) { placeDom(); return; }
+  const mk = (label, x, y, on, cls, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'mark' + (on ? ' on' : '') + cls; b.textContent = on ? '★' : label; b.dataset.x = x; b.dataset.y = y; b.title = title; b.setAttribute('aria-label', title + (on ? ' (meeting place)' : '')); b.addEventListener('click', fn); b.addEventListener('pointerdown', e => e.stopPropagation()); pinsEl.append(b); };
+  res.venues.forEach((i, k) => mk(String(k + 1), G.pox[i], G.poy[i], res.target.kind === 'venue' && res.target.i === i, '', G.pn[i], () => setTarget({ kind: 'venue', i })));
+  mk('', G.px[res.best], G.py[res.best], res.target.kind === 'exact', ' exact', 'Exact midpoint', () => setTarget({ kind: 'exact' }));
+  placeDom();
+}
+function placeDom() {
+  if (!G || W < 8) return; const placed = [], marks = [];
+  for (const el of pinsEl.children) {
+    let x, y; if (el.classList.contains('pin')) { const p = state.people.find(q => q.id === +el.dataset.id); if (!p) continue; x = el._x !== undefined ? el._x : p.x; y = el._y !== undefined ? el._y : p.y; } else { x = +el.dataset.x; y = +el.dataset.y; marks.push(el); }
+    el._sx = sx(x); el._sy = sy(y); el.style.transform = 'translate(' + el._sx.toFixed(1) + 'px,' + el._sy.toFixed(1) + 'px)';
+  }
+  // when numbered places crowd together, keep the chosen one and the best-ranked ones
+  marks.sort((a, b) => (b.classList.contains('on') - a.classList.contains('on')));
+  for (const el of marks) { const hit = placed.some(q => Math.hypot(q[0] - el._sx, q[1] - el._sy) < 21); el.classList.toggle('tuck', hit && !el.classList.contains('on')); if (!hit || el.classList.contains('on')) placed.push([el._sx, el._sy]); }
+}
+function startPinDrag(ev, p, el) {
+  ev.stopPropagation(); ev.preventDefault(); try { el.setPointerCapture(ev.pointerId); } catch (e) {} el.classList.add('drag');
+  const r = stage.getBoundingClientRect(); let moved = false;
+  const ox = sx(p.x) - (ev.clientX - r.left), oy = sy(p.y) - (ev.clientY - r.top);
+  const move = e => { if (!moved && Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) < 4) return; moved = true; el._x = wx(e.clientX - r.left + ox); el._y = wy(e.clientY - r.top + oy); placeDom(); };
+  const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); el.classList.remove('drag');
+    if (moved) { const old = [p.x, p.y, p.label]; p.x = el._x; p.y = el._y; p.label = '';
+      if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true); } else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast('That is outside the mapped part of Hanoi'); } }
+    el._x = el._y = undefined; placeDom(); };
+  el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+
+/* ------------------------------------------------------------ gestures */
+const ptrs = new Map(); let gesture = null, lastTap = null;
+stage.addEventListener('pointerdown', e => {
+  if (e.target.closest('.ctl, .pin, .mark, .toast, .mapfoot a, .loading')) return;
+  try { stage.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 1) gesture = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, multi: false };
+  else if (gesture) gesture.multi = true;
+});
+stage.addEventListener('pointermove', e => {
+  const prev = ptrs.get(e.pointerId); if (!prev || !G) return;
+  const r = stage.getBoundingClientRect();
+  if (ptrs.size === 1) { view.cx -= (e.clientX - prev[0]) / view.s; view.cy -= (e.clientY - prev[1]) / view.s; if (gesture && Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) > 7) gesture.moved = true; ptrs.set(e.pointerId, [e.clientX, e.clientY]); viewChanged(); }
+  else if (ptrs.size === 2) { const other = [...ptrs.entries()].find(([id]) => id !== e.pointerId)[1];
+    const d0 = Math.hypot(prev[0] - other[0], prev[1] - other[1]), d1 = Math.hypot(e.clientX - other[0], e.clientY - other[1]);
+    view.cx -= (e.clientX - prev[0]) / 2 / view.s; view.cy -= (e.clientY - prev[1]) / 2 / view.s;      // the midpoint moved by half of this finger's move
+    ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (d0 > 0 && d1 > 0) zoomAt(d1 / d0, (e.clientX + other[0]) / 2 - r.left, (e.clientY + other[1]) / 2 - r.top); else viewChanged(); }
+});
+const endPtr = e => {
+  if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
+  if (ptrs.size === 0 && gesture && G) { const g = gesture; gesture = null;
+    if (e.type === 'pointerup' && !g.moved && !g.multi && performance.now() - g.t < 500) { const r = stage.getBoundingClientRect(); tapMap(e.clientX - r.left, e.clientY - r.top); } }
+};
+stage.addEventListener('pointerup', endPtr); stage.addEventListener('pointercancel', endPtr);
+stage.addEventListener('wheel', e => { if (!G) return; e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+stage.addEventListener('keydown', e => {
+  if (!G || e.target !== stage) return; const step = 90 / view.s;
+  if (e.key === 'ArrowLeft') view.cx -= step; else if (e.key === 'ArrowRight') view.cx += step; else if (e.key === 'ArrowUp') view.cy -= step; else if (e.key === 'ArrowDown') view.cy += step;
+  else if (e.key === '+' || e.key === '=') { zoomAt(1.5, W / 2, H / 2); e.preventDefault(); return; } else if (e.key === '-' || e.key === '_') { zoomAt(1 / 1.5, W / 2, H / 2); e.preventDefault(); return; } else return;
+  e.preventDefault(); viewChanged();
+});
+function tapMap(x, y) {
+  const now = performance.now();
+  if (lastTap && now - lastTap.t < 330 && Math.hypot(x - lastTap.x, y - lastTap.y) < 26) {    // double tap zooms in and takes back the pin the first tap dropped
+    if (lastTap.p && state.people.includes(lastTap.p)) { state.people.splice(state.people.indexOf(lastTap.p), 1); if (lastTap.restore) { state.people = lastTap.restore; state.example = true; } $('toast').hidden = true; changed(true); }
+    lastTap = null; zoomAt(2, x, y); return;
+  }
+  const restore = state.example ? state.people.slice() : null, keep = state.people;
+  if (state.example) state.people = [];
+  const p = addPerson(wx(x), wy(y));
+  if (!p) { state.people = keep; lastTap = { t: now, x, y, p: null }; return; }
+  state.example = false; lastTap = { t: now, x, y, p, restore };
+  changed(true);
+  toast(p.name + ' added at ' + p.where.split(',')[0], 'Undo', () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
+}
+$('zin').addEventListener('click', () => zoomAt(1.6, W / 2, H / 2));
+$('zout').addEventListener('click', () => zoomAt(1 / 1.6, W / 2, H / 2));
+$('zfit').addEventListener('click', () => { if (G) fit(state.people.map(p => [p.x, p.y]).concat(state.result && state.result.target ? [[state.result.target.x, state.result.target.y]] : [])); });
+
+/* ------------------------------------------------------------ controls */
+function seg(ids, key, values, after) { ids.forEach((id, i) => $(id).addEventListener('click', () => { if (state[key] === values[i]) return; state[key] = values[i]; ids.forEach((j, k) => $(j).setAttribute('aria-pressed', k === i)); after(); })); }
+seg(['mode-bike', 'mode-car'], 'mode', ['bike', 'car'], () => { if (!G) return; resnapAll(); changed(true); });
+seg(['goal-fair', 'goal-total'], 'goal', ['fair', 'total'], () => { if (!G) return; changed(true); });
+document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { state.kind = +b.dataset.kind; document.querySelectorAll('[data-kind]').forEach(o => o.setAttribute('aria-pressed', o === b)); const r = state.result; if (r && r.target) { rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); } }));
+$('go').addEventListener('click', () => { userRun = true; run(true); });
+$('clear').addEventListener('click', () => { const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast('Cleared', 'Undo', () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
+$('copy').addEventListener('click', async () => { const b = $('copy'), text = planText(); try { await navigator.clipboard.writeText(text); b.textContent = 'Copied'; } catch (e) { const ta = $('plan'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); return; } setTimeout(() => { b.textContent = 'Copy plan for the group chat'; }, 1600); });
+
+/* ------------------------------------------------------------ finding a place by name, address, coordinates or Plus Code */
+const OLC = '23456789CFGHJMPQRVWX';
+function decodePlus(code) {                 // Google Maps Plus Code, full ("7PH72VH3+CQ") or local ("2VH3+CQ")
+  const [pre, post] = code.split('+'); if (pre.length % 2 || pre.length > 8 || post.length < 2) return null;
+  const miss = 8 - pre.length; let full = '';
+  if (miss) { let la = G.origin[0] + 90, lo = G.origin[1] + 180, res = 20; for (let i = 0; i < miss / 2; i++) { const a = Math.floor(la / res), b = Math.floor(lo / res); full += OLC[a] + OLC[b]; la -= a * res; lo -= b * res; res /= 20; } }
+  full += pre + post.slice(0, 2);
+  let lat = 0, lon = 0, res = 20;
+  for (let i = 0; i < 10; i += 2) { const a = OLC.indexOf(full[i]), b = OLC.indexOf(full[i + 1]); if (a < 0 || b < 0) return null; lat += a * res; lon += b * res; if (i < 8) res /= 20; }
+  let hLat = res, hLon = res;
+  if (post.length > 2) { const g = OLC.indexOf(post[2]); if (g >= 0) { hLat = res / 5; hLon = res / 4; lat += Math.floor(g / 4) * hLat; lon += (g % 4) * hLon; } }
+  lat += hLat / 2 - 90; lon += hLon / 2 - 180;
+  if (miss) { const period = Math.pow(20, 2 - miss / 2); if (lat - G.origin[0] > period / 2) lat -= period; else if (lat - G.origin[0] < -period / 2) lat += period; if (lon - G.origin[1] > period / 2) lon -= period; else if (lon - G.origin[1] < -period / 2) lon += period; }
+  return [lat, lon];
+}
+function parseLocation(raw) {
+  const s = raw.trim(); let m;
+  if ((m = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(s)) || (m = /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(s)) || (m = /[?&](?:q|query|ll|destination|daddr|center)=(?:loc:)?(-?\d+\.\d+)(?:,|%2C)\+?(-?\d+\.\d+)/i.exec(s)) || (m = /^\(?\s*(-?\d{1,2}[.,]\d{2,})\s*[,;\s]\s*(-?\d{1,3}[.,]\d{2,})\s*\)?$/.exec(s)))
+    return { lat: +m[1].replace(',', '.'), lon: +m[2].replace(',', '.'), how: 'Coordinates' };
+  if ((m = /(?:^|[\s,(])([2-9CFGHJMPQRVWX]{2,8})\+([2-9CFGHJMPQRVWX]{2,3})(?=$|[\s,)])/i.exec(s))) { const ll = decodePlus((m[1] + '+' + m[2]).toUpperCase()); if (ll) return { lat: ll[0], lon: ll[1], how: 'Plus Code' }; }
+  if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs/i.test(s)) return { short: true };
+  return null;
+}
+const WEIGHT = [0.05, 0.25, 0.3, 0.35, 0.45, 0.3, 0.3, 0.4, 0.5], OPTIONAL = new Set(['pho', 'duong', 'quan', 'phuong', 'xa', 'huyen', 'tp', 'thanh', 'ha', 'noi', 'hanoi', 'viet', 'nam', 'vn', 'so', 'nha', 'sn']);
+const LEAD = /^(pho|duong|ngo|ngach|hem|phuong|xa|quan|huyen|thon|xom|to|khu|chung cu|toa nha) $/;
+function ensureKeys() {
+  if (!G.skey) { G.skey = G.streets.map(s => fold(s.ctx ? s.name + ' ' + s.ctx : s.name)); G.akey = G.areas.map(a => fold(a.name)); if (!G.pkey) G.pkey = G.pn.map(fold); }
+  if (!G.wkey) { G.wkey = G.wlabels.map(w => [fold(w.name), w.alt ? fold(w.alt) : '']); G.gkey = G.glabels.map(w => fold(w.name)); }
+  if (IX && !IX.key) { IX.key = IX.name.map(fold); IX.altKey = IX.alt.map(a => fold(a)); }
+}
+function lookup(qv) {
+  const toks = qv.split(' '), multi = toks.length > 1, numeric = toks.map(t => /^\d+$/.test(t));
+  const hasTok = (key, t, num) => { let i = key.indexOf(t); if (!num) return i >= 0; for (; i >= 0; i = key.indexOf(t, i + 1)) { const a = key.charCodeAt(i - 1), b = key.charCodeAt(i + t.length); if (!(a >= 48 && a <= 57) && !(b >= 48 && b <= 57)) return true; } return false; };
+  const score = key => { const i = key.indexOf(qv);     // 0 exact, then: starts with it, a word starts with it, contains it, has every word
+    if (i === 0) return key.length === qv.length ? 0 : 1;
+    if (i > 0 && key.charCodeAt(i - 1) === 32) return i <= 9 && LEAD.test(key.slice(0, i)) ? (i + qv.length === key.length ? 0 : 1) : 2;
+    if (i > 0) return 3;
+    if (!multi) return 9; for (let k = 0; k < toks.length; k++) if (!hasTok(key, toks[k], numeric[k])) return 9; return 4; };
+  const pool = [];
+  G.akey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.areas[i]; pool.push([s + 0.05, a.name, 'Area', a.x, a.y, '']); } });
+  G.skey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.streets[i]; pool.push([s + 0.2, a.name, /^(ng[õo]|ng[áa]ch|h[ẻe]m)(\s|$)/i.test(a.name) ? 'Alley' : 'Street', a.x, a.y, a.ctx ? 'off ' + a.ctx : '']); } });
+  G.wkey.forEach((k, i) => { const s = Math.min(score(k[0]), k[1] ? score(k[1]) + 0.1 : 9); if (s < 9) { const a = G.wlabels[i]; pool.push([s + 0.1, a.name, /^s[oô]ng /i.test(a.name) ? 'River' : 'Lake', a.x, a.y, a.alt && score(k[0]) > s ? 'also ' + a.alt : '']); } });
+  G.gkey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.glabels[i]; pool.push([s + 0.15, a.name, 'Park', a.x, a.y, '']); } });
+  if (IX) for (let i = 0; i < IX.N; i++) { let s = score(IX.key[i]), via = ''; const ak = IX.altKey[i]; if (ak !== undefined && s > 0) { const s2 = score(ak) + 0.1; if (s2 < s) { s = s2; via = 'also ' + IX.alt[i]; } } if (s < 9) pool.push([s + WEIGHT[IX.k[i]], IX.name[i], KIND_LABEL[IX.k[i]], IX.x[i], IX.y[i], via]); }
+  G.pkey.forEach((k, i) => { const s = score(k); if (s < 9) pool.push([s + 0.6, G.pn[i], ['Café', 'Food', 'Bar'][G.pk[i]], G.pox[i], G.poy[i], '']); });
+  pool.sort((a, b) => a[0] - b[0] || a[1].length - b[1].length || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
+  const out = [];
+  for (const h of pool) { if (out.length === 8) break; if (out.some(o => o[1] === h[1] && Math.hypot(o[3] - h[3], o[4] - h[4]) < 120)) continue; out.push(h); }
+  return out;
+}
+const searchEl = $('search'), hitsEl = $('hits'); let hits = [], hitOn = 0;
+function note(msg) { const li = document.createElement('li'); li.className = 'note'; li.textContent = msg; hitsEl.append(li); hitsEl.hidden = false; }
+function doSearch() {
+  const raw = searchEl.value.slice(0, 300); hits = []; hitOn = 0; hitsEl.textContent = ''; hitsEl.hidden = true;
+  if (!G || raw.trim().length < 2) return;
+  const loc = parseLocation(raw); let lead = '';
+  if (loc && loc.short) { note('Short Google Maps links can\'t be opened from here. In Google Maps, press and hold on the house, then copy the coordinates or the Plus Code it shows and paste that.'); return; }
+  if (loc) { const xy = toXY(loc.lat, loc.lon); if (!(Math.abs(loc.lat) <= 90) || !inBounds(xy[0], xy[1])) { note('That point is outside the mapped part of Hanoi.'); return; }
+    hits = [[0, loc.lat.toFixed(5) + ', ' + loc.lon.toFixed(5), loc.how, xy[0], xy[1], '', 'Pinned spot']]; }
+  else {
+    ensureKeys();
+    const qv = fold(raw).replace(/[^a-z0-9/+&'-]+/g, ' ').replace(/\s+/g, ' ').trim(); if (qv.length < 2) return;
+    const words = qv.split(' ');
+    hits = lookup(qv);
+    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w)).join(' '); if (t.length >= 2 && t !== qv) hits = lookup(t); }
+    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w) && !/^\d+[a-z]?(\/\d+[a-z]?)*$/.test(w)).join(' '); if (t.length >= 2 && t !== qv) { hits = lookup(t); if (hits.length) lead = 'No record of that house number. Pick the street, then drag the pin to the house.'; } }
+    if (!hits.length) { note(IX ? 'Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.' : 'Still loading place names. Try again in a moment, or tap the map.'); return; }
+  }
+  if (lead) note(lead);
+  hits.forEach((h, i) => { const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; if (i === 0) b.className = 'on';
+    const near = areaNear(h[3], h[4]), t = document.createElement('b'); t.textContent = h[1]; const s = document.createElement('small'); s.textContent = [h[2], h[5], near !== h[1] ? near : ''].filter(Boolean).join(' · ');
+    b.append(t, s); b.addEventListener('click', () => pickHit(i)); li.append(b); hitsEl.append(li); });
+  hitsEl.hidden = false;
+}
+function pickHit(i) {
+  const h = hits[i]; if (!h) return;
+  const keep = state.people, wasExample = state.example;
+  if (wasExample) state.people = [];
+  const p = addPerson(h[3], h[4], '', { label: h[6] || h[1] });
+  if (!p) { state.people = keep; return; }
+  state.example = false; searchEl.value = ''; hitsEl.hidden = true; hits = []; app.classList.remove('searching');
+  changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged();
+  if (narrow.matches) { searchEl.blur(); toast(p.name + ' added. Drag the pin to fine-tune.'); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
+}
+let searchT = 0;
+searchEl.addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });
+searchEl.addEventListener('focus', () => { if (narrow.matches) app.classList.add('searching'); const sc = $('scroll'); sc.scrollTo({ top: searchEl.closest('.search').offsetTop - sc.offsetTop - 8, behavior: 'smooth' }); if (searchEl.value.trim().length >= 2 && hitsEl.hidden) doSearch(); });
+searchEl.addEventListener('blur', () => { setTimeout(() => { if (!document.activeElement || !document.activeElement.closest('.search')) { app.classList.remove('searching'); hitsEl.hidden = true; } }, 220); });
+searchEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchT); if (!hits.length) doSearch(); pickHit(hitOn); } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!hits.length) return; hitOn = (hitOn + (e.key === 'ArrowDown' ? 1 : hits.length - 1)) % hits.length; [...hitsEl.querySelectorAll('button')].forEach((b, i) => { b.classList.toggle('on', i === hitOn); if (i === hitOn) b.scrollIntoView({ block: 'nearest' }); }); } else if (e.key === 'Escape') { hitsEl.hidden = true; searchEl.blur(); } });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.search')) hitsEl.hidden = true; });
+
+/* ------------------------------------------------------------ link state: #q-<mode><goal>-<pin>-<pin>… (letters, digits, hyphens only) */
+const enc = n => Math.round(n).toString(36).padStart(5, '0'); let hashT = 0, lastHash = (location.hash || '').slice(1);
+function hashNow() {
+  if (!state.people.length || state.example) return '';
+  return 'q-' + (state.mode === 'bike' ? 'b' : 'c') + (state.goal === 'fair' ? 'f' : 't') + '-' + state.people.map(p => { const ll = toLatLon(p.x, p.y); return enc((ll[0] + 90) * 1e5) + enc((ll[1] + 180) * 1e5) + [...new TextEncoder().encode(cleanName(p.name))].map(b => b.toString(16).padStart(2, '0')).join(''); }).join('-');
+}
+function writeHash() { if (!G) return; clearTimeout(hashT); hashT = setTimeout(() => { const h = hashNow(); if (h === lastHash) return; lastHash = h; try { if (h) location.hash = h; else history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }, 350); }
+function parseHash(hash) {                  // returns null unless the link holds at least one usable pin ("p-" links are the older, coarser format)
+  const m = /^#?([pq])-([bc])([ft])-([0-9a-z-]{10,2000})$/.exec(hash || ''); if (!m) return null;
+  const pins = [], scale = m[1] === 'q' ? 1e5 : 1e4; let dropped = 0;
+  for (const part of m[4].split('-')) {
+    if (part.length < 10 || !/^[0-9a-z]{10}([0-9a-f]{2})*$/.test(part)) { if (part) dropped++; continue; }
+    const lat = parseInt(part.slice(0, 5), 36) / scale - 90, lon = parseInt(part.slice(5, 10), 36) / scale - 180; let name = '';
+    try { const hex = part.slice(10, 10 + MAX_NAME * 8), bytes = new Uint8Array(hex.length >> 1); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(2 * i, 2), 16); name = cleanName(new TextDecoder().decode(bytes).replace(/\uFFFD/g, '')); } catch (e) {}
+    const xy = toXY(lat, lon); if (!inBounds(xy[0], xy[1]) || pins.length >= MAX_PEOPLE) { dropped++; continue; }
+    pins.push([xy[0], xy[1], name]);
+  }
+  return pins.length ? { mode: m[2] === 'b' ? 'bike' : 'car', goal: m[3] === 'f' ? 'fair' : 'total', pins, dropped } : null;
+}
+function loadHash(hash) {
+  const h = parseHash(hash); if (!h) return false;
+  state.mode = h.mode; state.goal = h.goal; state.people = []; state.example = false; state.result = null;
+  $('mode-bike').setAttribute('aria-pressed', state.mode === 'bike'); $('mode-car').setAttribute('aria-pressed', state.mode === 'car');
+  $('goal-fair').setAttribute('aria-pressed', state.goal === 'fair'); $('goal-total').setAttribute('aria-pressed', state.goal === 'total');
+  let dropped = h.dropped; for (const [x, y, name] of h.pins) if (!addPerson(x, y, name, { quiet: true })) dropped++;
+  if (dropped) toast(dropped + (dropped === 1 ? ' pin in this link was' : ' pins in this link were') + ' left out (outside the map, unreadable, or past the limit of ' + MAX_PEOPLE + ')');
+  return state.people.length > 0;
+}
+function loadExample() { state.people = []; state.example = true; for (const [name, lat, lon] of EXAMPLE) { const xy = toXY(lat, lon); addPerson(xy[0], xy[1], name, { quiet: true }); } }
+
+/* ------------------------------------------------------------ start */
+readTheme();
+const themeChanged = () => { readTheme(); if (G) fullRender(); };
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', themeChanged);
+new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+new ResizeObserver(resize).observe(stage);
+addEventListener('hashchange', () => { if (!G) return; const h = location.hash.slice(1); if (h === lastHash) return; if (loadHash(location.hash)) { lastHash = h; clearTimeout(hashT); cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (state.people.length >= 2) run(false); else fit(state.people.map(p => [p.x, p.y])); } });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (G && W >= 8) drawBase(); });
+
+function start() {
+  const l = $('loading'); l.hidden = false;
+  fetch(DATA_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(d => {
+    const t0 = performance.now(); G = decode(d); perf.decode = performance.now() - t0; l.hidden = true; resize();
+    if (!loadHash(location.hash)) loadExample();
+    renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); fullRender();
+    if (state.people.length >= 2) run(true);
+    fetch(PLACES_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(p => { IX = decodePlaces(p); if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender(); }).catch(err => { console.error(err); });
+  }).catch(err => {
+    console.error(err); if (G) return;
+    const d = document.createElement('div'), b = document.createElement('b'), again = document.createElement('button'); b.textContent = 'The Hanoi map did not load'; again.type = 'button'; again.className = 'btn'; again.textContent = 'Try again';
+    again.addEventListener('click', () => { l.textContent = ''; const w = document.createElement('div'), t = document.createElement('b'); t.textContent = 'Loading Hanoi\'s roads'; w.append(t); l.append(w); start(); });
+    d.append(b, 'Check the connection, then try again.', document.createElement('br'), again); l.textContent = ''; l.append(d);
+  });
+}
+start();
+window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
+})();
+</script>
+
+</body>
+</html>

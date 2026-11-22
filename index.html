@@ -13,7 +13,7 @@
 /* Layout: one-screen tool. The map is the stage; one panel (left on desktop, below on phones) holds the answer, the people and the Find action. */
 :root {
   --bg: #EEF1EE; --surface: #FFFFFF; --raised: #F4F6F3; --ink: #14201E; --muted: #5A6A66; --line: #D5DCD8;
-  --accent: #F0B429; --accent-ink: #2A1E00; --accent-text: #8A5A00; --danger: #B3261E;
+  --accent: #F0B429; --accent-ink: #2A1E00; --accent-text: #8A5A00; --danger: #B3261E; --live: #1F9D61;
   --map-ground: #ECEFEA; --map-green: #D3E3CC; --map-green-ink: #4C7A4F; --map-water: #B7D3DE; --map-water-ink: #47788A;
   --rl-a: #8C9893; --rl-b: #A6B0AB; --rl-c: #C2CAC5; --rl-d: #D2D8D4; --rf: #FFFFFF; --rf-a: #FFF1C9; --rc: #B3BCB7; --rail: #98A39E;
   --label: #33423F; --label-soft: #62716D; --label-halo: #ECEFEA;
@@ -24,7 +24,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0C1314; --surface: #131C1D; --raised: #1A2526; --ink: #E7EEEB; --muted: #93A39E; --line: #263435;
-    --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80;
+    --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80; --live: #4CC38A;
     --map-ground: #0B1112; --map-green: #0F1F19; --map-green-ink: #6FA277; --map-water: #0E2730; --map-water-ink: #5E93A3;
     --rl-a: #5E6E6B; --rl-b: #465453; --rl-c: #2E3A3A; --rl-d: #222C2C; --rf: #303D3C; --rf-a: #4B4630; --rc: #131B1B; --rail: #3F4D4B;
     --label: #B7C4C0; --label-soft: #83928E; --label-halo: #0B1112;
@@ -34,7 +34,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #0C1314; --surface: #131C1D; --raised: #1A2526; --ink: #E7EEEB; --muted: #93A39E; --line: #263435;
-  --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80;
+  --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80; --live: #4CC38A;
   --map-ground: #0B1112; --map-green: #0F1F19; --map-green-ink: #6FA277; --map-water: #0E2730; --map-water-ink: #5E93A3;
   --rl-a: #5E6E6B; --rl-b: #465453; --rl-c: #2E3A3A; --rl-d: #222C2C; --rf: #303D3C; --rf-a: #4B4630; --rc: #131B1B; --rail: #3F4D4B;
   --label: #B7C4C0; --label-soft: #83928E; --label-halo: #0B1112;
@@ -68,6 +68,13 @@ button { cursor: pointer; }
 .linkbtn { border: 0; background: none; padding: 2px 0; color: var(--accent-text); font-weight: 600; font-size: 12.5px; }
 .note { margin: 0; padding: 8px 10px; background: var(--raised); border: 1px dashed var(--line); border-radius: var(--r); color: var(--muted); font-size: 12.5px; }
 .block { display: flex; flex-direction: column; gap: 8px; }
+.live { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.live .hint { margin: 0 2px; }
+.live-on { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; align-self: stretch; }
+.live-on b { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; font-size: 12.5px; font-weight: 600; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.live-dot[data-s="live"] { background: var(--live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 28%, transparent); }
+.live-dot[data-s="offline"] { background: var(--danger); }
 
 .people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .person { display: grid; grid-template-columns: 26px 1fr auto 28px; align-items: center; gap: 8px; padding: 7px 4px 7px 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
@@ -215,6 +222,12 @@ button { cursor: pointer; }
       </div>
       <div class="block">
         <div class="row-between"><span class="label" id="people-label">Who's coming</span><button type="button" class="linkbtn" id="clear">Start fresh</button></div>
+        <div class="live" id="live" hidden>
+          <button type="button" class="btn" id="live-start">Plan together with a live link</button>
+          <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy">Copy invite link</button></div>
+          <input class="plan" id="live-link" readonly hidden aria-label="Invite link. Copy it from here.">
+          <p class="hint" id="live-hint"></p>
+        </div>
         <p class="note" id="example-note" hidden>Example group. Tap <b>Start fresh</b>, then tap the map once for each friend.</p>
         <ul class="people" id="people" aria-labelledby="people-label"></ul>
         <div class="search">
@@ -260,8 +273,9 @@ button { cursor: pointer; }
 (() => {
 'use strict';
 const DATA_URL = 'hanoi-v2.json', PLACES_URL = 'hanoi-v2-places.json';   // the name changes whenever the data format does, so an old cached copy is never read
-const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E'];
-const MAX_PEOPLE = 8, MAX_NAME = 18, SNAP_LIMIT = 1500;
+const LIVE_DB = 'https://caiduyen-default-rtdb.asia-southeast1.firebasedatabase.app';                 // address of the shared database for live groups; empty where the page cannot reach one
+const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E', '#A0623B', '#4C5FD5', '#B03A8C', '#5F7285'];
+const MAX_PEOPLE = 12, MAX_NAME = 18, SNAP_LIMIT = 1500;
 // km/h by road class: motorway, trunk, primary, secondary, tertiary, local street, living street, alley
 const SPEED = { bike: [0, 30, 23, 21, 18, 15, 10, 8], car: [55, 32, 21, 19, 16, 11, 6, 5] };
 const EXAMPLE = [['Minh', 21.0362, 105.7906], ['Linh', 20.9716, 105.7788], ['Huy', 21.0477, 105.8889], ['Trang', 21.0637, 105.8272]];
@@ -493,14 +507,15 @@ function addPerson(x, y, name, opts) {       // returns the person, or null with
   opts = opts || {};
   if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast('Up to ' + MAX_PEOPLE + ' friends at a time'); return null; }
   const used = new Set(state.people.map(p => p.color));
-  const p = { id: state.nextId++, name: cleanName(name || '') || freeName(), x, y, v: -1, snapD: 0, color: COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null };
+  const mine = room && !opts.remote ? cleanName(mem.get()) : '';      // in a live group, a pin you add starts with the name you used last time
+  const p = { id: state.nextId++, name: cleanName(name || '') || (mine && !state.people.some(q => q.name === mine) ? mine : '') || freeName(), x, y, v: -1, snapD: 0, color: (opts.color && !used.has(opts.color) ? opts.color : '') || COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null, mine: !!room && !opts.remote };
   if (typeof x !== 'number' || typeof y !== 'number' || !inBounds(x, y) || !snap(p)) { if (!opts.quiet) toast('That is outside the mapped part of Hanoi'); return null; }
   state.people.push(p); return p;
 }
 let autoT = 0, live = false;             // live: an answer was showing, so keep one showing
 function changed(keepView) {                 // people, mode or goal changed
-  const had = !!state.result || live; state.result = null; cancelAnimationFrame(animRaf); clearTimeout(autoT); animating = false; clearGlow(); $('chip').hidden = true; $('plan').hidden = true;
-  renderPanel(); renderPins(); renderMarks(); drawOverlay(0); writeHash();
+  const had = !!state.result || live || !!(room && room.ready); state.result = null; cancelAnimationFrame(animRaf); clearTimeout(autoT); animating = false; clearGlow(); $('chip').hidden = true; $('plan').hidden = true;
+  renderPanel(); renderPins(); renderMarks(); drawOverlay(0); writeHash(); pushRoom();
   live = had && state.people.length >= 2;
   if (live) autoT = setTimeout(() => run(false, keepView), 60);   // once an answer is showing, keep it up to date
 }
@@ -522,8 +537,8 @@ function renderPanel() {
     const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = p.color; dot.textContent = initial(p);
     const who = document.createElement('div'); who.className = 'who';
     const inp = document.createElement('input'); inp.id = 'name-' + p.id; inp.dataset.pid = p.id; inp.value = p.name; inp.maxLength = MAX_NAME; inp.setAttribute('aria-label', 'Name'); inp.autocomplete = 'off';
-    inp.addEventListener('input', () => { p.name = inp.value; dot.textContent = initial(p); renderPins(); writeHash(); });
-    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } });
+    inp.addEventListener('input', () => { p.name = inp.value; dot.textContent = initial(p); renderPins(); writeHash(); pushSoon(); });
+    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } if (p.mine && !/^Friend \d+$/.test(c)) mem.set(c); pushRoom(); });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
     const wh = document.createElement('span'); wh.className = 'where'; wh.textContent = p.where; wh.title = p.where;
     who.append(inp, wh);
@@ -536,8 +551,8 @@ function renderPanel() {
   });
   if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
   $('example-note').hidden = !state.example;
-  $('clear').hidden = !state.people.length;
-  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = 'Nobody yet. Tap the map where each friend is coming from, or search below.'; ul.append(li); }
+  $('clear').hidden = !state.people.length && !room; renderLive();
+  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? 'Nobody yet. Tap the map where you are coming from, or search below.' : 'Opening the group…') : 'Nobody yet. Tap the map where each friend is coming from, or search below.'; ul.append(li); }
   const go = $('go'); go.disabled = state.people.length < 2; go.classList.toggle('stale', !res && state.people.length >= 2);
   go.textContent = state.people.length < 2 ? (state.people.length ? 'Add one more friend' : 'Add at least two friends') : res ? 'Replay the search' : 'Find the spot';
   $('answer').hidden = $('answer-more').hidden = !times;
@@ -859,7 +874,7 @@ seg(['mode-bike', 'mode-car'], 'mode', ['bike', 'car'], () => { if (!G) return; 
 seg(['goal-fair', 'goal-total'], 'goal', ['fair', 'total'], () => { if (!G) return; changed(true); });
 document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { state.kind = +b.dataset.kind; document.querySelectorAll('[data-kind]').forEach(o => o.setAttribute('aria-pressed', o === b)); const r = state.result; if (r && r.target) { rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); } }));
 $('go').addEventListener('click', () => { userRun = true; run(true); });
-$('clear').addEventListener('click', () => { const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast('Cleared', 'Undo', () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
+$('clear').addEventListener('click', () => { if (room) { leaveRoom(); toast('You left the live group. Your copy of the pins stays here.'); return; } const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast('Cleared', 'Undo', () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
 $('copy').addEventListener('click', async () => { const b = $('copy'), text = planText(); try { await navigator.clipboard.writeText(text); b.textContent = 'Copied'; } catch (e) { const ta = $('plan'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); return; } setTimeout(() => { b.textContent = 'Copy plan for the group chat'; }, 1600); });
 
 /* ------------------------------------------------------------ finding a place by name, address, coordinates or Plus Code */
@@ -956,6 +971,7 @@ document.addEventListener('pointerdown', e => { if (!e.target.closest('.search')
 /* ------------------------------------------------------------ link state: #q-<mode><goal>-<pin>-<pin>… (letters, digits, hyphens only) */
 const enc = n => Math.round(n).toString(36).padStart(5, '0'); let hashT = 0, lastHash = (location.hash || '').slice(1);
 function hashNow() {
+  if (room) return 'g-' + room.id;
   if (!state.people.length || state.example) return '';
   return 'q-' + (state.mode === 'bike' ? 'b' : 'c') + (state.goal === 'fair' ? 'f' : 't') + '-' + state.people.map(p => { const ll = toLatLon(p.x, p.y); return enc((ll[0] + 90) * 1e5) + enc((ll[1] + 180) * 1e5) + [...new TextEncoder().encode(cleanName(p.name))].map(b => b.toString(16).padStart(2, '0')).join(''); }).join('-');
 }
@@ -972,16 +988,132 @@ function parseHash(hash) {                  // returns null unless the link hold
   }
   return pins.length ? { mode: m[2] === 'b' ? 'bike' : 'car', goal: m[3] === 'f' ? 'fair' : 'total', pins, dropped } : null;
 }
+function syncSegs() {
+  $('mode-bike').setAttribute('aria-pressed', state.mode === 'bike'); $('mode-car').setAttribute('aria-pressed', state.mode === 'car');
+  $('goal-fair').setAttribute('aria-pressed', state.goal === 'fair'); $('goal-total').setAttribute('aria-pressed', state.goal === 'total');
+}
 function loadHash(hash) {
   const h = parseHash(hash); if (!h) return false;
   state.mode = h.mode; state.goal = h.goal; state.people = []; state.example = false; state.result = null;
-  $('mode-bike').setAttribute('aria-pressed', state.mode === 'bike'); $('mode-car').setAttribute('aria-pressed', state.mode === 'car');
-  $('goal-fair').setAttribute('aria-pressed', state.goal === 'fair'); $('goal-total').setAttribute('aria-pressed', state.goal === 'total');
+  syncSegs();
   let dropped = h.dropped; for (const [x, y, name] of h.pins) if (!addPerson(x, y, name, { quiet: true })) dropped++;
   if (dropped) toast(dropped + (dropped === 1 ? ' pin in this link was' : ' pins in this link were') + ' left out (outside the map, unreadable, or past the limit of ' + MAX_PEOPLE + ')');
   return state.people.length > 0;
 }
 function loadExample() { state.people = []; state.example = true; for (const [name, lat, lon] of EXAMPLE) { const xy = toXY(lat, lon); addPerson(xy[0], xy[1], name, { quiet: true }); } }
+
+/* ------------------------------------------------------------ live group: one set of pins shared through a small database (#g-<group>) */
+let room = null, pushT = 0;          // room: { id, doc: { s, pins }, es, ready, shown, applying, hidden, q, status }
+const mem = { get() { try { return localStorage.getItem('midpoint-name') || ''; } catch (e) { return ''; } }, set(v) { try { localStorage.setItem('midpoint-name', v); } catch (e) {} } };
+const rid = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => (b % 36).toString(36)).join(''); };
+const roomUrl = path => LIVE_DB + '/rooms/' + room.id + (path ? '/' + path : '') + '.json';
+const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v), near = (a, b) => Math.abs(a - b) < 2e-6;
+const newRoom = id => ({ id, doc: { s: {}, pins: {} }, es: null, ready: false, shown: false, applying: false, hidden: new Set(), q: Promise.resolve(), status: 'connecting', failed: false, retry: 0 });
+function send(method, path, body) {
+  const r = room, url = roomUrl(path);
+  r.q = r.q.then(() => fetch(url, { method, body: body === undefined ? undefined : JSON.stringify(body) })).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); })
+    .catch(err => { console.error(err); r.failed = true; if (room === r && r.shown) toast('Could not save to the group. Check the connection.'); });
+}
+function pushSoon() { clearTimeout(pushT); if (room) pushT = setTimeout(pushRoom, 700); }
+function pushRoom() {                        // send whatever differs between this screen and the group's copy
+  const r = room; clearTimeout(pushT); if (!r || !r.ready || r.applying) return;
+  const pins = r.doc.pins, seen = new Set();
+  for (const p of state.people) {
+    if (!p.rid) p.rid = rid(8); seen.add(p.rid);
+    const ll = toLatLon(p.x, p.y), la = +ll[0].toFixed(5), lo = +ll[1].toFixed(5), n = cleanName(p.name) || 'Friend', cur = pins[p.rid];
+    if (!isObj(cur)) { const d = { la, lo, n, t: Date.now(), c: Math.max(0, COLORS.indexOf(p.color)) }; pins[p.rid] = d; send('PUT', 'pins/' + p.rid, d); }
+    else { const d = {}; if (!near(cur.la, la) || !near(cur.lo, lo)) { d.la = la; d.lo = lo; } if (cur.n !== n) d.n = n; if (d.la !== undefined || d.n !== undefined) { Object.assign(cur, d); send('PATCH', 'pins/' + p.rid, d); } }
+  }
+  for (const k of Object.keys(pins)) if (!seen.has(k) && !r.hidden.has(k)) { delete pins[k]; send('DELETE', 'pins/' + k); }
+  const m = state.mode === 'bike' ? 'b' : 'c', g = state.goal === 'fair' ? 'f' : 't';
+  if (r.doc.s.m !== m || r.doc.s.g !== g) { r.doc.s = { m, g }; send('PUT', 's', r.doc.s); }
+}
+function applyEvent(r, path, data, patch) {  // one change from the database, applied to our copy of the group
+  const keys = path.split('/').filter(Boolean); if (keys.some(k => k === '__proto__' || k === 'constructor' || k === 'prototype')) return;
+  if (!keys.length) r.doc = patch ? Object.assign(isObj(r.doc) ? r.doc : {}, isObj(data) ? data : {}) : (isObj(data) ? data : {});
+  else { let o = r.doc; for (let i = 0; i < keys.length - 1; i++) { if (!isObj(o[keys[i]])) o[keys[i]] = {}; o = o[keys[i]]; } const k = keys[keys.length - 1];
+    if (patch) { if (!isObj(o[k])) o[k] = {}; if (isObj(data)) Object.assign(o[k], data); } else if (data === null || data === undefined) delete o[k]; else o[k] = data; }
+  if (!isObj(r.doc.pins)) r.doc.pins = {}; if (!isObj(r.doc.s)) r.doc.s = {};
+}
+function pullRoom(full) {                    // make this screen match the group's copy; full = the database just sent the whole group
+  const r = room, pins = r.doc.pins, first = !r.shown; r.shown = true; r.applying = true; r.hidden.clear();
+  let moved = false, renamed = false, joined = '';
+  const s = r.doc.s, mode = s.m === 'c' ? 'car' : s.m === 'b' ? 'bike' : state.mode, goal = s.g === 't' ? 'total' : s.g === 'f' ? 'fair' : state.goal;
+  if (mode !== state.mode || goal !== state.goal) { const re = mode !== state.mode; state.mode = mode; state.goal = goal; syncSegs(); if (re) resnapAll(); moved = true; }
+  const ok = k => /^[0-9a-z]{1,20}$/.test(k) && isObj(pins[k]) && Number.isFinite(pins[k].la) && Number.isFinite(pins[k].lo);
+  const ids = Object.keys(pins).filter(k => ok(k) || (r.hidden.add(k), false)).sort((a, b) => ((+pins[a].t || 0) - (+pins[b].t || 0)) || (a < b ? -1 : 1));
+  const have = new Map(state.people.filter(p => p.rid).map(p => [p.rid, p])), before = state.people.length, next = []; state.people = next;
+  for (const k of ids) {
+    const d = pins[k], xy = toXY(d.la, d.lo), name = cleanName(typeof d.n === 'string' ? d.n : ''); let p = have.get(k);
+    if (!p) { p = addPerson(xy[0], xy[1], name, { quiet: true, remote: true, color: COLORS[d.c] }); if (!p) { r.hidden.add(k); continue; } p.rid = k; moved = true; if (!first) joined = p.name; continue; }
+    const ll = toLatLon(p.x, p.y);
+    if (!near(+ll[0].toFixed(5), d.la) || !near(+ll[1].toFixed(5), d.lo)) { const old = [p.x, p.y, p.label]; p.x = xy[0]; p.y = xy[1]; p.label = ''; if (inBounds(p.x, p.y) && snap(p)) moved = true; else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); } }
+    const act = document.activeElement, typing = act && act.dataset && +act.dataset.pid === p.id;
+    if (name && name !== p.name && !typing) { p.name = name; renamed = true; }
+    next.push(p);
+  }
+  const resend = full && r.failed;         // a save failed earlier: keep the pins added on this screen and send them again
+  if (resend) { r.failed = false; for (const p of have.values()) if (p.mine && !next.includes(p) && next.length < MAX_PEOPLE) next.push(p); }
+  if (next.length !== before) moved = true;
+  r.applying = false;
+  if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.map(p => [p.x, p.y])); pushRoom(); }
+  else if (moved || resend) changed(true);
+  else if (renamed) { renderPanel(); renderPins(); }
+  if (joined) toast(joined + ' is on the map');
+}
+function setLive(status) { if (room) { room.status = status; renderLive(); } }
+function renderLive() {
+  $('live').hidden = !LIVE_DB; if (!LIVE_DB) return;
+  $('live-start').hidden = !!room; $('live-on').hidden = !room; if (!room) $('live-link').hidden = true;
+  $('live-hint').textContent = room ? 'Send the link to the group. Everyone opens it, adds their own pin and name, and the meeting place updates for all.' : 'One link for the whole group. Everyone opens it and adds their own pin.';
+  if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? 'Live group' : room.status === 'offline' ? 'Reconnecting…' : 'Connecting…'; }
+  $('clear').textContent = room ? 'Leave group' : 'Start fresh';
+  searchEl.placeholder = room ? 'Add yourself: street, alley, building, address' : 'Add a friend: street, alley, building, address';
+}
+function openStream() {
+  const r = room; if (r.es) r.es.close(); clearTimeout(r.retry);
+  const es = r.es = new EventSource(roomUrl(''));
+  const on = patch => e => { if (room !== r) return; let m; try { m = JSON.parse(e.data); } catch (err) { return; } if (!m || typeof m.path !== 'string') return; applyEvent(r, m.path, m.data, patch); r.ready = true; r.status = 'live'; pullRoom(!patch && m.path === '/'); renderLive(); };
+  es.addEventListener('put', on(false)); es.addEventListener('patch', on(true));
+  es.addEventListener('cancel', () => { if (room === r) { setLive('offline'); toast('This group link is not available.'); } });
+  es.onopen = () => { if (room === r && r.ready) setLive('live'); };
+  es.onerror = () => { if (room !== r) return; setLive('offline'); if (es.readyState === 2) r.retry = setTimeout(() => { if (room === r) openStream(); }, 4000); };
+}
+function joinRoom(id) {
+  leaveRoom(true); cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true;
+  state.people = []; state.example = false; state.result = null; room = newRoom(id);
+  renderPanel(); renderPins(); renderMarks(); drawOverlay(0); openStream();
+}
+function leaveRoom(quiet) {
+  const r = room; if (!r) return; if (r.es) r.es.close(); clearTimeout(r.retry); clearTimeout(pushT); room = null;
+  for (const p of state.people) { delete p.rid; p.mine = false; }
+  if (!quiet) { renderPanel(); writeHash(); }
+}
+function startRoom() {                       // turn what is on screen into a group and hand out its link
+  if (!LIVE_DB || room || !G) return;
+  if (state.example) { state.people = []; state.example = false; state.result = null; }
+  const r = room = newRoom(rid(16)); r.ready = true; r.shown = true;
+  for (const p of state.people) { p.rid = rid(8); const ll = toLatLon(p.x, p.y); r.doc.pins[p.rid] = { la: +ll[0].toFixed(5), lo: +ll[1].toFixed(5), n: cleanName(p.name) || 'Friend', t: Date.now() + state.people.indexOf(p), c: Math.max(0, COLORS.indexOf(p.color)) }; }
+  r.doc.s = { m: state.mode === 'bike' ? 'b' : 'c', g: state.goal === 'fair' ? 'f' : 't' };
+  send('PUT', '', r.doc);
+  changed(true);
+  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast('Could not start a live group. Check the connection and try again.'); return; } openStream(); copyInvite(); });
+}
+const inviteLink = () => location.origin + location.pathname + location.search + '#g-' + room.id;
+async function copyInvite() {
+  if (!room) return; const b = $('live-copy'), link = inviteLink();
+  try { await navigator.clipboard.writeText(link); b.textContent = 'Link copied'; setTimeout(() => { b.textContent = 'Copy invite link'; }, 1800); }
+  catch (e) { const box = $('live-link'); box.value = link; box.hidden = false; box.focus(); box.select(); }
+}
+$('live-start').addEventListener('click', startRoom);
+$('live-copy').addEventListener('click', copyInvite);
+function route(hash) {                       // what a link holds: 'room', 'pins' or nothing usable
+  const m = /^#?g-([0-9a-z]{16})$/.exec(hash || '');
+  if (m) { if (!LIVE_DB) { toast('That is a live group link. It only works on the hosted site.'); return ''; } if (!room || room.id !== m[1]) joinRoom(m[1]); return 'room'; }
+  if (!parseHash(hash)) return '';
+  if (room) leaveRoom(true);
+  return loadHash(hash) ? 'pins' : '';
+}
 
 /* ------------------------------------------------------------ start */
 readTheme();
@@ -989,16 +1121,16 @@ const themeChanged = () => { readTheme(); if (G) fullRender(); };
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', themeChanged);
 new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 new ResizeObserver(resize).observe(stage);
-addEventListener('hashchange', () => { if (!G) return; const h = location.hash.slice(1); if (h === lastHash) return; if (loadHash(location.hash)) { lastHash = h; clearTimeout(hashT); cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (state.people.length >= 2) run(false); else fit(state.people.map(p => [p.x, p.y])); } });
+addEventListener('hashchange', () => { if (!G) return; const h = location.hash.slice(1); if (h === lastHash) return; const how = route(location.hash); if (how) { lastHash = h; clearTimeout(hashT); } if (how === 'pins') { cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (state.people.length >= 2) run(false); else fit(state.people.map(p => [p.x, p.y])); } });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (G && W >= 8) drawBase(); });
 
 function start() {
   const l = $('loading'); l.hidden = false;
   fetch(DATA_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(d => {
     const t0 = performance.now(); G = decode(d); perf.decode = performance.now() - t0; l.hidden = true; resize();
-    if (!loadHash(location.hash)) loadExample();
+    const how = route(location.hash); if (!how) loadExample();
     renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); fullRender();
-    if (state.people.length >= 2) run(true);
+    if (how !== 'room' && state.people.length >= 2) run(true);
     fetch(PLACES_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(p => { IX = decodePlaces(p); if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender(); }).catch(err => { console.error(err); });
   }).catch(err => {
     console.error(err); if (G) return;
@@ -1008,7 +1140,7 @@ function start() {
   });
 }
 start();
-window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
+window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, startRoom, leaveRoom, pushRoom, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
 })();
 </script>
 

@@ -1,318 +1,60 @@
 <title>Hanoi Midpoint</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
-<style>
-/* Layout: one-screen tool. The map is the stage; one panel (left on desktop, below on phones) holds the answer, the people and the Find action. */
-:root {
-  --bg: #EEF1EE; --surface: #FFFFFF; --raised: #F4F6F3; --ink: #14201E; --muted: #5A6A66; --line: #D5DCD8;
-  --accent: #F0B429; --accent-ink: #2A1E00; --accent-text: #8A5A00; --danger: #B3261E; --live: #1F9D61;
-  --map-ground: #ECEFEA; --map-green: #D3E3CC; --map-green-ink: #4C7A4F; --map-water: #B7D3DE; --map-water-ink: #47788A;
-  --rl-a: #8C9893; --rl-b: #A6B0AB; --rl-c: #C2CAC5; --rl-d: #D2D8D4; --rf: #FFFFFF; --rf-a: #FFF1C9; --rc: #B3BCB7; --rail: #98A39E;
-  --label: #33423F; --label-soft: #62716D; --label-halo: #ECEFEA;
-  --front-alpha: .5; --front-blend: multiply;
-  --font: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --r: 10px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0C1314; --surface: #131C1D; --raised: #1A2526; --ink: #E7EEEB; --muted: #93A39E; --line: #263435;
-    --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80; --live: #4CC38A;
-    --map-ground: #0B1112; --map-green: #0F1F19; --map-green-ink: #6FA277; --map-water: #0E2730; --map-water-ink: #5E93A3;
-    --rl-a: #5E6E6B; --rl-b: #465453; --rl-c: #2E3A3A; --rl-d: #222C2C; --rf: #303D3C; --rf-a: #4B4630; --rc: #131B1B; --rail: #3F4D4B;
-    --label: #B7C4C0; --label-soft: #83928E; --label-halo: #0B1112;
-    --front-alpha: .55; --front-blend: lighter;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0C1314; --surface: #131C1D; --raised: #1A2526; --ink: #E7EEEB; --muted: #93A39E; --line: #263435;
-  --accent: #F3BC3A; --accent-ink: #241A00; --accent-text: #F3BC3A; --danger: #FF8A80; --live: #4CC38A;
-  --map-ground: #0B1112; --map-green: #0F1F19; --map-green-ink: #6FA277; --map-water: #0E2730; --map-water-ink: #5E93A3;
-  --rl-a: #5E6E6B; --rl-b: #465453; --rl-c: #2E3A3A; --rl-d: #222C2C; --rf: #303D3C; --rf-a: #4B4630; --rc: #131B1B; --rail: #3F4D4B;
-  --label: #B7C4C0; --label-soft: #83928E; --label-halo: #0B1112;
-  --front-alpha: .55; --front-blend: lighter;
-  color-scheme: dark;
-}
-html, body { height: 100%; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45; overflow: hidden; }
-*, *::before, *::after { box-sizing: border-box; }
-button, input { font: inherit; color: inherit; }
-button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
-
-.app { height: 100%; display: grid; grid-template-columns: minmax(320px, 404px) 1fr; grid-template-rows: 100%; }
-.panel { grid-column: 1; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-right: 1px solid var(--line); }
-.stage { grid-column: 2; position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--map-ground); touch-action: none; user-select: none; -webkit-user-select: none; }
-.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-
-.head { padding-block: 14px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
-.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.brand h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
-.brand span { color: var(--muted); font-size: 12px; }
-.opts { display: flex; flex-wrap: wrap; gap: 8px; }
-.seg { display: inline-flex; background: var(--raised); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
-.seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
-
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding-block: 12px 16px; display: flex; flex-direction: column; gap: 14px; }
-.label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.linkbtn { border: 0; background: none; padding: 2px 0; color: var(--accent-text); font-weight: 600; font-size: 12.5px; }
-.note { margin: 0; padding: 8px 10px; background: var(--raised); border: 1px dashed var(--line); border-radius: var(--r); color: var(--muted); font-size: 12.5px; }
-.block { display: flex; flex-direction: column; gap: 8px; }
-.live { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.live .hint { margin: 0 2px; }
-.live-on { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; align-self: stretch; }
-.live-on b { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; font-size: 12.5px; font-weight: 600; }
-.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-.live-dot[data-s="live"] { background: var(--live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 28%, transparent); }
-.live-dot[data-s="offline"] { background: var(--danger); }
-
-.people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.person { display: grid; grid-template-columns: 26px 1fr auto 28px; align-items: center; gap: 8px; padding: 7px 4px 7px 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
-.dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; }
-.person .who { min-width: 0; display: flex; flex-direction: column; }
-.person input { width: 100%; border: 0; background: transparent; padding: 0; font-weight: 600; font-size: 14px; border-radius: 4px; }
-.person .where { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.person .bar { height: 3px; border-radius: 2px; background: var(--raised); margin-top: 5px; overflow: hidden; }
-.person .bar i { display: block; height: 100%; border-radius: 2px; transition: width .35s ease; }
-.person .trip { text-align: right; font-variant-numeric: tabular-nums; font-size: 12.5px; line-height: 1.25; white-space: nowrap; color: var(--muted); }
-.person .trip b { display: block; font-size: 14px; color: var(--ink); }
-.person .trip.long b { color: var(--accent-text); }
-.x { width: 28px; height: 28px; border: 0; background: transparent; color: var(--muted); border-radius: 6px; font-size: 16px; line-height: 1; }
-.x:hover { background: var(--raised); color: var(--ink); }
-
-.search { position: relative; }
-.search input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--raised); font-size: 16px; }
-.search input::placeholder { color: var(--muted); font-size: 14px; }
-.hint { margin: 6px 2px 0; color: var(--muted); font-size: 11.5px; }
-.hits { position: absolute; z-index: 5; left: 0; right: 0; top: 50px; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 8px 24px rgba(0,0,0,.18); max-height: 300px; overflow-y: auto; }
-.hits button { width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 8px; border-radius: 6px; display: flex; flex-direction: column; min-width: 0; }
-.hits button:hover, .hits button.on { background: var(--raised); }
-.hits b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.hits small { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.hits .note { border: 0; background: transparent; }
-
-.go { width: 100%; border: 0; border-radius: var(--r); padding: 12px 14px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; }
-.go:disabled { opacity: .45; cursor: not-allowed; }
-.go.stale { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
-
-.answer { display: flex; flex-direction: column; gap: 10px; }
-.answer h2 { margin: 2px 0 0; font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
-.answer .sub { color: var(--muted); font-size: 12.5px; margin: 3px 0 0; }
-.kick { display: flex; align-items: center; gap: 6px; }
-.kick::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
-.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin: 0; }
-.facts div { background: var(--surface); padding: 8px 10px; min-width: 0; }
-.facts dt { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.facts dd { margin: 0; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 11px; font-weight: 600; font-size: 12.5px; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; }
-.btn:hover { background: var(--raised); }
-.btn.solid { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-
-.plan { width: 100%; border: 1px solid var(--line); border-radius: var(--r); background: var(--raised); color: var(--ink); font: inherit; font-size: 12.5px; padding: 8px 10px; resize: vertical; }
-.venues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.venues button { width: 100%; display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 7px 8px; }
-.venues button:hover { background: var(--raised); }
-.venues button[aria-pressed="true"] { border-color: var(--accent-text); background: var(--raised); }
-.venues .n { width: 22px; height: 22px; border-radius: 50%; background: var(--raised); border: 1px solid var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
-.venues button[aria-pressed="true"] .n { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.venues .vn { min-width: 0; }
-.venues .vn b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.venues .vn span { color: var(--muted); font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.venues .vt { font-variant-numeric: tabular-nums; font-size: 12.5px; text-align: right; white-space: nowrap; color: var(--muted); }
-.venues .vt b { color: var(--ink); }
-.tally { margin: 0; color: var(--muted); font-size: 12px; }
-.tally b { color: var(--ink); font-variant-numeric: tabular-nums; }
-.foot { margin: 0; color: var(--muted); font-size: 11.5px; }
-.foot a { color: inherit; }
-
-/* map stage */
-.layer { position: absolute; left: -25%; top: -25%; width: 150%; height: 150%; transform-origin: 50% 50%; pointer-events: none; }
-.pins { position: absolute; inset: 0; pointer-events: none; }
-.pin { position: absolute; left: 0; top: 0; pointer-events: auto; touch-action: none; cursor: grab; display: flex; flex-direction: column; align-items: center; margin: -37px 0 0 -15px; width: 30px; border: 0; background: none; padding: 0; z-index: 2; }
-.pin i { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: grid; place-items: center; border: 2px solid var(--surface); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
-.pin i b { transform: rotate(45deg); color: #fff; font-size: 12px; font-weight: 700; font-style: normal; }
-.pin span { position: absolute; top: 2px; left: 34px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 600; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.pin.drag { cursor: grabbing; z-index: 6; }
-.pin.drag i { box-shadow: 0 8px 14px rgba(0,0,0,.4); }
-.mark { position: absolute; left: 0; top: 0; pointer-events: auto; margin: -11px 0 0 -11px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); background: var(--ink); color: var(--surface); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0; box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 1; }
-.mark.tuck { display: none; }
-.mark.on { background: var(--accent); color: var(--accent-ink); width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 4; font-size: 17px; }
-.mark.on::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; border: 2px solid var(--accent); animation: ring 1.9s ease-out infinite; pointer-events: none; }
-.mark.exact { background: var(--surface); color: var(--ink); border: 2px dashed var(--accent-text); box-shadow: none; }
-.mark.exact.on { background: var(--accent); color: var(--accent-ink); border-style: solid; border-color: var(--surface); }
-@keyframes ring { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
-.ctl { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 6px; z-index: 7; }
-.ctl button { width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); font-size: 19px; font-weight: 600; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.ctl button.txt { font-size: 11px; }
-.chip { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: calc(34px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 24px); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--muted); z-index: 7; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.chip b { color: var(--ink); font-variant-numeric: tabular-nums; }
-.mapfoot { position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(6px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; font-size: 10.5px; color: var(--label-soft); pointer-events: none; z-index: 6; }
-.mapfoot a { color: inherit; pointer-events: auto; }
-.scale { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-shadow: 0 0 3px var(--label-halo), 0 0 3px var(--label-halo); }
-.scale i { display: block; height: 5px; border: 1.5px solid var(--label-soft); border-top: 0; }
-.loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 24px; z-index: 8; background: var(--map-ground); }
-.loading b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
-.loading .btn { margin-top: 12px; pointer-events: auto; }
-.toast { position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); border-radius: 9px; padding: 7px 8px 7px 12px; font-size: 12.5px; font-weight: 500; width: max-content; max-width: calc(100% - 116px); display: flex; align-items: center; gap: 10px; z-index: 9; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
-.toast button { border: 0; background: color-mix(in srgb, var(--surface) 18%, transparent); color: inherit; border-radius: 6px; padding: 3px 9px; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
-.toast span { padding-right: 4px; }
-
-@media (max-width: 760px) {
-  .app { grid-template-columns: 100%; grid-template-rows: minmax(0, 47%) minmax(0, 53%); }
-  .stage { grid-column: 1; grid-row: 1; }
-  .panel { grid-column: 1; grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
-  .head { padding-block: 9px 8px; gap: 7px; }
-  .brand h1 { font-size: 17px; }
-  .brand span { display: none; }
-  .answer h2 { font-size: 18px; }
-  /* while someone types a place on a phone, the search takes the whole screen so the keyboard cannot cover the results */
-  .app.searching .panel { position: fixed; inset: 0; z-index: 20; border-top: 0; }
-  .app.searching .head, .app.searching .scroll > :not(.block), .app.searching .block > :not(.search) { display: none; }
-  .app.searching .scroll { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
-  .app.searching .hits { max-height: 44vh; }
-}
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-</style>
-
-<div class="app" id="app">
-  <section class="panel" aria-label="Plan">
-    <div class="head pad">
-      <div class="brand"><h1>Hanoi Midpoint</h1><span>the fair place to meet</span></div>
-      <div class="opts">
-        <div class="seg" role="group" aria-label="How everyone travels">
-          <button type="button" id="mode-bike" aria-pressed="true">Motorbike</button>
-          <button type="button" id="mode-car" aria-pressed="false">Car</button>
-        </div>
-        <div class="seg" role="group" aria-label="What counts as best">
-          <button type="button" id="goal-fair" aria-pressed="true" title="Make the longest ride as short as possible">Fairest</button>
-          <button type="button" id="goal-total" aria-pressed="false" title="Make everyone's travel added together as small as possible">Least total</button>
-        </div>
-      </div>
-    </div>
-    <div class="scroll pad" id="scroll">
-      <div class="answer" id="answer" hidden>
-        <div>
-          <span class="label kick" id="answer-kicker">Meet here</span>
-          <h2 id="answer-title"></h2>
-          <p class="sub" id="answer-sub"></p>
-        </div>
-        <dl class="facts">
-          <div><dt>Longest ride</dt><dd id="f-max"></dd></div>
-          <div><dt title="Longest ride minus shortest ride">Biggest gap</dt><dd id="f-gap"></dd></div>
-          <div><dt>Everyone, total</dt><dd id="f-sum"></dd></div>
-        </dl>
-        <div class="actions">
-          <a class="btn solid" id="gmaps" target="_blank" rel="noopener">Open in Google Maps</a>
-          <button type="button" class="btn" id="copy">Copy plan for the group chat</button>
-        </div>
-        <textarea id="plan" class="plan" rows="7" readonly hidden aria-label="Plan text. Copy it from here."></textarea>
-      </div>
-      <div class="block">
-        <div class="row-between"><span class="label" id="people-label">Who's coming</span><button type="button" class="linkbtn" id="clear">Start fresh</button></div>
-        <div class="live" id="live" hidden>
-          <button type="button" class="btn" id="live-start">Plan together with a live link</button>
-          <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy">Copy invite link</button></div>
-          <input class="plan" id="live-link" readonly hidden aria-label="Invite link. Copy it from here.">
-          <p class="hint" id="live-hint"></p>
-        </div>
-        <p class="note" id="example-note" hidden>Example group. Tap <b>Start fresh</b>, then tap the map once for each friend.</p>
-        <ul class="people" id="people" aria-labelledby="people-label"></ul>
-        <div class="search">
-          <input id="search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Add a friend: street, alley, building, address" aria-label="Add a friend by street, alley, building or address">
-          <ul class="hits" id="hits" hidden></ul>
-          <p class="hint" id="hint">Can't find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.</p>
-        </div>
-      </div>
-      <button type="button" class="go" id="go" disabled>Find the spot</button>
-      <div class="answer" id="answer-more" hidden>
-        <div class="row-between">
-          <span class="label">Places near the midpoint</span>
-          <div class="seg" role="group" aria-label="Kind of place">
-            <button type="button" data-kind="0" aria-pressed="true">Café</button>
-            <button type="button" data-kind="1" aria-pressed="false">Food</button>
-            <button type="button" data-kind="2" aria-pressed="false">Bar</button>
-          </div>
-        </div>
-        <ul class="venues" id="venues"></ul>
-        <p class="tally" id="tally"></p>
-      </div>
-      <p class="foot">Ride times are off-peak estimates from road type and distance, with no live traffic. Roads, places and addresses © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
-    </div>
-  </section>
-  <section class="stage" id="stage" tabindex="0" aria-label="Map of Hanoi. Tap to add a friend. Arrow keys move the map, plus and minus zoom.">
-    <canvas class="layer" id="base"></canvas>
-    <canvas class="layer" id="over"></canvas>
-    <canvas class="layer" id="glow"></canvas>
-    <div class="pins" id="pins"></div>
-    <div class="ctl">
-      <button type="button" id="zin" aria-label="Zoom in">+</button>
-      <button type="button" id="zout" aria-label="Zoom out">−</button>
-      <button type="button" id="zfit" class="txt" aria-label="Fit everyone on the map">Fit</button>
-    </div>
-    <div class="chip" id="chip" hidden></div>
-    <div class="mapfoot"><div class="scale" id="scale" aria-hidden="true"><span></span><i></i></div><span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span></div>
-    <div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button type="button" id="toast-act" hidden></button></div>
-    <div class="loading" id="loading"><div><b>Loading Hanoi's roads</b><span id="loading-text">Streets, alleys and cafés for the whole city. After this, everything runs on your device.</span></div></div>
-  </section>
-</div>
-
 <script>
-(() => {
 'use strict';
-const DATA_URL = 'hanoi-v2.json', PLACES_URL = 'hanoi-v2-places.json';   // the name changes whenever the data format does, so an old cached copy is never read
+/* First thing on the page, ahead of the styles: the road map is by far the slowest part, so its download starts here,
+   and it is unpacked beside the page (in a worker) so the page stays free to be typed in while that happens. */
 const LIVE_DB = '';                 // address of the shared database for live groups; empty where the page cannot reach one
-const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E', '#A0623B', '#4C5FD5', '#B03A8C', '#5F7285'];
-const MAX_PEOPLE = 12, MAX_NAME = 18, SNAP_LIMIT = 1500;
+const PACKED = '';                  // the hosted site sets this to '.gz': copies squeezed harder than the host squeezes them on the way out
+const DATA_URL = 'hanoi-v3.json', PLACES_URL = 'hanoi-v3-places.json';   // the name changes whenever the data does, so a kept copy is never out of date
+const KEEP = 'midpoint-data-3';     // the device's own store for those files, so a small update to the page does not download the map again
 // km/h by road class: motorway, trunk, primary, secondary, tertiary, local street, living street, alley
 const SPEED = { bike: [0, 30, 23, 21, 18, 15, 10, 8], car: [55, 32, 21, 19, 16, 11, 6, 5] };
-const EXAMPLE = [['Minh', 21.0362, 105.7906], ['Linh', 20.9716, 105.7788], ['Huy', 21.0477, 105.8889], ['Trang', 21.0637, 105.8272]];
-const KIND_LABEL = ['Area', 'Homes', 'School', 'Health', 'Shop', 'Transit', 'Sight', 'Address', 'Place'];
-const $ = id => document.getElementById(id);
-const app = $('app'), stage = $('stage'), base = $('base'), over = $('over'), glow = $('glow'), pinsEl = $('pins');
-const bctx = base.getContext('2d'), octx = over.getContext('2d'), gctx = glow.getContext('2d');
-const narrow = matchMedia('(max-width: 760px)');
-
-let G = null, IX = null;            // decoded city, and the place index that loads after it
-const state = { mode: 'bike', goal: 'fair', kind: 0, people: [], result: null, example: false, nextId: 1 };
-const view = { cx: 0, cy: 0, s: 0.03 }, drawn = { cx: 0, cy: 0, s: 0.03 };
-let W = 0, H = 0, DPR = 1, css = {};
-const perf = { decode: 0, solve: 0, base: 0 };
-
-/* ------------------------------------------------------------ helpers */
-const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
-const fmtMin = sec => sec < 3570 ? Math.max(1, Math.round(sec / 60)) + ' min' : Math.floor(Math.round(sec / 60) / 60) + ' h ' + String(Math.round(sec / 60) % 60).padStart(2, '0');
-const fmtKm = m => (m < 9950 ? (m / 1000).toFixed(1) : Math.round(m / 1000)) + ' km';
-const nf = n => n.toLocaleString('en-US');
-const cleanName = s => [...String(s).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}]/gu, '').trim()].slice(0, MAX_NAME).join('');
-const initial = p => { const m = /^Friend (\d)$/.exec(p.name.trim()); return m ? m[1] : ([...p.name.trim()][0] || '?').toUpperCase(); };
-let toastT = 0;
-function toast(msg, action, fn) {
-  const t = $('toast'), b = $('toast-act'); $('toast-text').textContent = msg; t.hidden = false;
-  b.hidden = !action; if (action) { b.textContent = action; b.onclick = () => { t.hidden = true; fn(); }; }
-  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, action ? 5200 : 3200);
+function b64() { const t = new Uint8Array(128); for (let i = 0; i < 64; i++) t['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'.charCodeAt(i)] = i; return t; }
+const B64 = b64();
+function nums(s) {                           // whole numbers packed as text: five bits a character, low bits first, sign in the lowest bit
+  const out = new Int32Array(s.length); let n = 0, u = 0, sh = 0;
+  for (let i = 0; i < s.length; i++) { const c = B64[s.charCodeAt(i)]; u |= (c & 31) << sh; if (c & 32) sh += 5; else { out[n++] = (u >>> 1) ^ -(u & 1); u = 0; sh = 0; } }
+  return out.subarray(0, n);
 }
-function readTheme() {
-  const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
-  const la = g('--rl-a'), lb = g('--rl-b'), lc = g('--rl-c'), ld = g('--rl-d'), rf = g('--rf'), rfa = g('--rf-a');
-  css = { ground: g('--map-ground'), green: g('--map-green'), greenInk: g('--map-green-ink'), water: g('--map-water'), waterInk: g('--map-water-ink'),
-    line: [la, la, la, lb, lb, lc, lc, ld], fill: [rfa, rfa, rf, rf, rf, rf, rf, rf], casing: g('--rc'), rail: g('--rail'),
-    label: g('--label'), soft: g('--label-soft'), halo: g('--label-halo'), accent: g('--accent'), surface: g('--surface'),
-    frontAlpha: parseFloat(g('--front-alpha')) || .5, blend: g('--front-blend') || 'source-over', font: g('--font') };
+async function readBody(res, onPart) {       // the whole reply, reporting how far along it is when its size is known
+  const total = res.headers.get('content-encoding') ? 0 : +res.headers.get('content-length') || 0;
+  if (!res.body || !res.body.getReader) return new Uint8Array(await res.arrayBuffer());
+  const rd = res.body.getReader(), parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; if (onPart && total) onPart(got / total); }
+  const all = new Uint8Array(got); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; }
+  return all;
 }
-
-/* ------------------------------------------------------------ decode */
-function decode(d) {
-  if (d.v !== 2) throw new Error('unexpected map data version');
+async function loadData(url, onPart) {      // a data file: from this device's kept copy when there is one, else downloaded (the squeezed copy first) and kept
+  let keep = null, res = null;
+  try { keep = await caches.open(KEEP); res = await keep.match(url) || null; } catch (e) { keep = null; }
+  const kept = !!res;
+  try {
+    if (!res && PACKED && typeof DecompressionStream === 'function') { try { res = await fetch(url + PACKED); if (!res.ok) res = null; } catch (e) { res = null; } }
+    if (!res) { res = await fetch(url); if (!res.ok) throw new Error('HTTP ' + res.status); }
+    const copy = keep && !kept ? res.clone() : null;
+    let bytes = await readBody(res, kept ? null : onPart);
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const d = JSON.parse(new TextDecoder().decode(bytes));
+    if (copy) loadData.saving = keep.put(url, copy).catch(() => {});
+    return d;
+  } catch (err) {
+    if (!kept) throw err;
+    try { await keep.delete(url); } catch (e) {}
+    return loadData(url, onPart);           // the kept copy could not be read: download it again
+  }
+}
+function decodeCore(d) {                     // the city as numbers: roads, their lengths, who connects to whom, the cafés. Needs nothing from the page, so it can run beside it
+  if (d.v !== 3) throw new Error('unexpected map data version');
+  for (const k of ['vx', 'vy', 'ea', 'eb', 'en', 'eg', 'px', 'py', 'pv', 'pc']) d[k] = nums(d[k]);
   const MY = 111320 / d.q, MX = MY * Math.cos(d.origin[0] * Math.PI / 180);
   const V = d.vx.length, E = d.ea.length, NC = d.ec.length;
   const px = new Float32Array(V), py = new Float32Array(V), vflag = new Uint8Array(V);
   const qx = new Int32Array(V), qy = new Int32Array(V);
   for (let i = 0, x = 0, y = 0; i < V; i++) { x += d.vx[i]; y += d.vy[i]; qx[i] = x; qy[i] = y; px[i] = x * MX; py[i] = -y * MY; vflag[i] = d.vf.charCodeAt(i) - 48; }
-  const ea = new Int32Array(E), eb = new Int32Array(E), ecls = new Uint8Array(E), eflag = new Uint8Array(E), ename = Int32Array.from(d.en), elen = new Float32Array(E);
+  const ea = new Int32Array(E), eb = new Int32Array(E), ecls = new Uint8Array(E), eflag = new Uint8Array(E), ename = new Int32Array(E), elen = new Float32Array(E);
   for (let i = 0, a = 0; i < E; i++) { a += d.ea[i]; ea[i] = a; eb[i] = a + d.eb[i]; eflag[i] = d.ef.charCodeAt(i) - 48; }
+  for (let i = 0, seen = 0; i < E; i++) { const c = d.en[i]; ename[i] = c === 0 ? 0 : c === 1 ? ++seen : seen - (c - 2); }   // 0 no name, 1 a name not used before, else how many names back
   for (let c = 0, i = 0; c < NC; c++) for (let k = 0; k < d.ec[c]; k++) ecls[i++] = c;
   // geometry: every edge as a full polyline in metres
   let total = 0; for (let i = 0, k = 0; i < E; i++) { const n = d.eg[k]; total += n + 2; k += 1 + n * 2; }
@@ -357,31 +99,594 @@ function decode(d) {
   // venues, areas, map shapes
   const P = d.pn.length, pox = new Float32Array(P), poy = new Float32Array(P), pk = new Uint8Array(P);
   for (let i = 0, x = 0, y = 0; i < P; i++) { x += d.px[i]; y += d.py[i]; pox[i] = x * MX; poy[i] = -y * MY; pk[i] = d.pk.charCodeAt(i) - 48; }
+  const pvBike = new Int32Array(P), pvCar = new Int32Array(P); for (let i = 0, v = 0; i < P; i++) { v += d.pv[i]; pvBike[i] = v; pvCar[i] = v + d.pc[i]; }
   const areas = d.areas.map(p => ({ name: p[0], x: p[1] * MX, y: -p[2] * MY, rank: p[3] }));
-  const unflat = a => { const n = a.length / 2, xs = new Float32Array(n), ys = new Float32Array(n); for (let i = 0, x = 0, y = 0; i < n; i++) { x += a[2 * i]; y += a[2 * i + 1]; xs[i] = x * MX; ys[i] = -y * MY; } return { xs, ys }; };
-  const shape = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (!u.xs.length) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); } return path; };
-  const closed = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (u.xs.length < 3) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); path.closePath(); } return path; };
-  const streets = d.sn.map((n, i) => ({ name: d.names[n], ctx: d.sc[i] ? d.names[d.sc[i]] : '', x: d.sx[i] * MX, y: -d.sy[i] * MY }));
   const lab = a => a.map(w => ({ name: w[0], x: w[1] * MX, y: -w[2] * MY, w: w[3] || 0, alt: w[4] || '' }));
   return { MX, MY, q: d.q, origin: d.origin, V, E, NC, px, py, vflag, ea, eb, ecls, eflag, ename, elen, goff, gx, gy, ex0, ey0, ex1, ey1,
     off: deg, arcTo, arcEdge, w: { bike: wBike, car: wCar }, bounds: [bx0, by0, bx1, by1], CELL, gw, gh, vCount, vCell, eCount, eCell,
-    names: d.names, P, pox, poy, pk, pn: d.pn, pvBike: Int32Array.from(d.pv), pvCar: Int32Array.from(d.pc), pkey: null, areas, akey: null, streets, skey: null, wkey: null, gkey: null,
-    water: closed(d.water), rivers: shape(d.rivers.filter((r, i) => d.rk[i] === '1')), canals: shape(d.rivers.filter((r, i) => d.rk[i] !== '1')),
-    green: closed(d.green), rail: shape(d.rail), runway: shape(d.runway), wlabels: lab(d.wlabels), glabels: lab(d.glabels),
-    stamp: new Int32Array(E), stampN: 0, where: new Map() };
+    names: d.names, P, pox, poy, pk, pn: d.pn, pvBike, pvCar, areas, wlabels: lab(d.wlabels), glabels: lab(d.glabels),
+    raw: { water: d.water, rivers: d.rivers, rk: d.rk, green: d.green, rail: d.rail, runway: d.runway } };
+}
+const EARLY = { part: 0, onPart: null, dataAt: 0, map: null };
+EARLY.load = () => {                         // the decoded city, from a worker when the browser allows one, else worked out here
+  const url = new URL(DATA_URL, document.baseURI).href, part = f => { EARLY.part = f; if (EARLY.onPart) EARLY.onPart(f); };
+  const here = () => loadData(url, part).then(d => { EARLY.dataAt = performance.now(); const core = decodeCore(d); core.ms = performance.now() - EARLY.dataAt; return core; });
+  return new Promise(done => {
+    let w, src;
+    try {
+      src = URL.createObjectURL(new Blob(['"use strict";\nconst KEEP = ' + JSON.stringify(KEEP) + ', PACKED = ' + JSON.stringify(PACKED) + ', SPEED = ' + JSON.stringify(SPEED) + ', B64 = (' + b64 + ')();\n' + nums + '\n' + readBody + '\n' + loadData + '\n' + decodeCore + '\n',
+        'onmessage = async e => { try { const d = await loadData(e.data, f => postMessage({ part: f })); postMessage({ data: 1 }); const t0 = performance.now(), core = decodeCore(d); core.ms = performance.now() - t0;',
+        ' const bufs = new Set(); for (const v of [...Object.values(core), core.w.bike, core.w.car]) if (ArrayBuffer.isView(v)) bufs.add(v.buffer); postMessage({ core }, [...bufs]); await loadData.saving; }',
+        ' catch (err) { postMessage({ failed: String(err) }); } close(); };'], { type: 'text/javascript' }));
+      w = new Worker(src);
+    } catch (e) { done(here()); return; }
+    let over = false; const fall = () => { if (over) return; over = true; try { w.terminate(); } catch (e) {} done(here()); };   // anything wrong beside the page: do the same work on it
+    w.onmessage = e => { const m = e.data; if (m.part !== undefined) part(m.part); else if (m.data) EARLY.dataAt = performance.now(); else if (m.core) { over = true; done(m.core); } else fall(); };
+    w.onerror = fall; w.postMessage(url);
+    setTimeout(() => { try { URL.revokeObjectURL(src); } catch (e) {} }, 30000);
+  });
+};
+EARLY.map = EARLY.load(); EARLY.map.catch(() => {});   // the page reports a failed load itself, further down
+{
+  const add = (rel, href) => { const l = document.createElement('link'); l.rel = rel; l.href = href; if (rel === 'preconnect') l.crossOrigin = 'anonymous'; document.head.appendChild(l); };
+  add('preconnect', 'https://fonts.gstatic.com');   // the lettering arrives when it arrives: put in this way, the page is drawn without waiting for it
+  add('stylesheet', 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+  if (LIVE_DB && /^#g-[0-9a-z]{16}$/.test(location.hash)) add('preconnect', LIVE_DB);   // a group link: get the line to the group open as well
+}
+</script>
+<style>
+/* Layout: one-screen tool. The map is the stage; one panel (left on desktop, below on phones) holds the answer, the people and the Find action.
+   Look: the answer is set as a Hanoi street-name plate (blue enamel, white keyline, condensed capitals). Everything around it stays quiet. */
+:root {
+  --bg: #EEF0F3; --surface: #FFFFFF; --raised: #F2F4F8; --ink: #111A2E; --muted: #56627A; --line: #DBE0E8;
+  --sign: #1B4B9B; --sign-ink: #FFFFFF; --sign-dim: rgba(255,255,255,.84);
+  --accent: #F7C531; --accent-ink: #1E1600; --accent-text: #1B4B9B; --danger: #B3261E; --live: #1F9D61;
+  --map-ground: #ECEEF1; --map-green: #D4E4CF; --map-green-ink: #4C7A4F; --map-water: #B5D0E6; --map-water-ink: #3F6F96;
+  --rl-a: #8A93A3; --rl-b: #A5ADBA; --rl-c: #C3C9D3; --rl-d: #D3D8DF; --rf: #FFFFFF; --rf-a: #FFF0C2; --rc: #B4BBC6; --rail: #98A1AF;
+  --label: #2F3A50; --label-soft: #5F6B80; --label-halo: #ECEEF1;
+  --front-alpha: .5; --front-blend: multiply;
+  --font: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --sign-font: "Barlow Condensed", "Roboto Condensed", "Arial Narrow", "Be Vietnam Pro", system-ui, sans-serif;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A0F1C; --surface: #10172A; --raised: #182036; --ink: #E8ECF6; --muted: #97A3BC; --line: #26314D;
+    --sign: #2357B5; --sign-ink: #FFFFFF; --sign-dim: rgba(255,255,255,.84);
+    --accent: #F7C531; --accent-ink: #1E1600; --accent-text: #9DBBFF; --danger: #FF8A80; --live: #4CC38A;
+    --map-ground: #0A0E18; --map-green: #0E1E1A; --map-green-ink: #6FA277; --map-water: #0F2238; --map-water-ink: #6C9AC4;
+    --rl-a: #5F6B82; --rl-b: #485369; --rl-c: #2F394D; --rl-d: #232B3C; --rf: #323C52; --rf-a: #4E4830; --rc: #121826; --rail: #404B62;
+    --label: #B9C2D6; --label-soft: #8792AA; --label-halo: #0A0E18;
+    --front-alpha: .55; --front-blend: lighter;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0A0F1C; --surface: #10172A; --raised: #182036; --ink: #E8ECF6; --muted: #97A3BC; --line: #26314D;
+  --sign: #2357B5; --sign-ink: #FFFFFF; --sign-dim: rgba(255,255,255,.84);
+  --accent: #F7C531; --accent-ink: #1E1600; --accent-text: #9DBBFF; --danger: #FF8A80; --live: #4CC38A;
+  --map-ground: #0A0E18; --map-green: #0E1E1A; --map-green-ink: #6FA277; --map-water: #0F2238; --map-water-ink: #6C9AC4;
+  --rl-a: #5F6B82; --rl-b: #485369; --rl-c: #2F394D; --rl-d: #232B3C; --rf: #323C52; --rf-a: #4E4830; --rc: #121826; --rail: #404B62;
+  --label: #B9C2D6; --label-soft: #8792AA; --label-halo: #0A0E18;
+  --front-alpha: .55; --front-blend: lighter;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45; overflow: hidden; }
+*, *::before, *::after { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(320px, 408px) 1fr; grid-template-rows: 100%; }
+.panel { grid-column: 1; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-right: 1px solid var(--line); }
+.stage { grid-column: 2; position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--map-ground); touch-action: none; user-select: none; -webkit-user-select: none; }
+.pad { padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+
+.head { padding-block: 15px 13px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 11px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand h1 { margin: 0; font-family: var(--sign-font); font-size: 25px; font-weight: 700; line-height: 1; letter-spacing: .02em; text-transform: uppercase; }
+.seg.lang button { padding: 4px 9px; font-size: 12px; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg { display: inline-flex; background: var(--raised); border-radius: 8px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(17,26,46,.10); }
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding-block: 16px 18px; display: flex; flex-direction: column; gap: 18px; }
+.label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.linkbtn { border: 0; background: none; padding: 2px 0; color: var(--accent-text); font-weight: 600; font-size: 12.5px; }
+.linkbtn:hover { text-decoration: underline; text-underline-offset: 3px; }
+.note { margin: 0; padding: 9px 11px; background: var(--raised); border-radius: var(--r); color: var(--muted); font-size: 12.5px; list-style: none; }
+.block { display: flex; flex-direction: column; gap: 10px; }
+/* first steps: what to do when you arrive (start a plan, or add yourself to a group you were invited to) */
+.intro, .join { display: flex; flex-direction: column; gap: 9px; }
+.intro h2, .join h2 { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.25; text-wrap: balance; }
+.intro p, .join p { margin: 0; color: var(--muted); font-size: 13px; }
+.join .claim { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; }
+.field { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); font-size: 16px; }
+.field:focus { border-color: var(--accent-text); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-text) 22%, transparent); }
+.field::placeholder { color: var(--muted); font-size: 14px; }
+.app.joining .block { display: contents; }
+.app.joining .join { order: -3; }
+.app.joining .search { order: -2; }
+.live { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+.live .hint { margin: 0; }
+.live-on { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; align-self: stretch; }
+.live-on b { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; font-size: 13px; font-weight: 600; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.live-dot[data-s="live"] { background: var(--live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 28%, transparent); }
+.live-dot[data-s="offline"] { background: var(--danger); }
+
+/* who's coming: one ruled row per friend; the bars share one scale, so equal bars mean a fair spot */
+.people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.people:has(> .note) { border-top: 0; }
+.person { display: grid; grid-template-columns: 28px 1fr auto 26px; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12.5px; }
+.person .who { min-width: 0; display: flex; flex-direction: column; }
+.person .nm { display: flex; align-items: center; gap: 7px; }
+.you { flex: none; font-size: 11.5px; font-weight: 600; color: var(--accent-text); background: color-mix(in srgb, var(--accent-text) 12%, transparent); border-radius: 4px; padding: 1px 6px; }
+.person input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; padding: 0; font-weight: 600; font-size: 14.5px; border-radius: 4px; }
+.person .where { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person .bar { height: 4px; border-radius: 2px; background: var(--raised); margin-top: 7px; overflow: hidden; }
+.person .bar i { display: block; height: 100%; border-radius: 2px; transition: width .35s ease; }
+.person .trip { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; line-height: 1.2; white-space: nowrap; color: var(--muted); }
+.person .trip b { display: block; font-family: var(--sign-font); font-weight: 600; font-size: 20px; line-height: 1.05; color: var(--ink); }
+.person .trip.long b { color: var(--accent-text); }
+.x { width: 26px; height: 28px; border: 0; background: transparent; color: var(--muted); border-radius: 6px; font-size: 16px; line-height: 1; }
+.x:hover { background: var(--raised); color: var(--ink); }
+
+.search { position: relative; }
+.search input { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); font-size: 16px; }
+.search input:focus { border-color: var(--accent-text); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-text) 22%, transparent); }
+.search input::placeholder { color: var(--muted); font-size: 14px; }
+.hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+.hits { position: absolute; z-index: 5; left: 0; right: 0; top: 52px; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 10px 28px rgba(17,26,46,.20); max-height: 300px; overflow-y: auto; }
+.hits button { width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 9px; border-radius: 6px; display: flex; flex-direction: column; min-width: 0; }
+.hits button:hover, .hits button.on { background: var(--raised); }
+.hits b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.hits small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.hits .note { background: transparent; }
+
+.go { width: 100%; border: 0; border-radius: var(--r); padding: 13px 14px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; box-shadow: inset 0 -2px 0 rgba(30,22,0,.16); }
+.go:disabled { background: var(--raised); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+.go.stale { box-shadow: inset 0 -2px 0 rgba(30,22,0,.16), 0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent); }
+
+/* the answer: a street-name plate, then three plain figures */
+.answer { display: flex; flex-direction: column; gap: 14px; }
+.plate { background: var(--sign); color: var(--sign-ink); border-radius: 9px; padding: 15px 18px 16px; box-shadow: inset 0 0 0 3px var(--sign), inset 0 0 0 4.5px rgba(255,255,255,.94); }
+.plate h2 { margin: 7px 0 0; font-family: var(--sign-font); font-size: 32px; font-weight: 700; line-height: 1.03; letter-spacing: .012em; text-transform: uppercase; text-wrap: balance; overflow-wrap: anywhere; }
+.plate .sub { color: var(--sign-dim); font-size: 13px; margin: 6px 0 0; }
+.kick { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 500; color: var(--sign-dim); }
+.kick::before { content: ""; width: 12px; height: 12px; background: var(--accent); clip-path: polygon(50% 0, 62% 35%, 98% 36%, 69% 58%, 80% 93%, 50% 72%, 20% 93%, 31% 58%, 2% 36%, 38% 35%); }
+.facts { display: flex; margin: 0; }
+.facts div { flex: 1; min-width: 0; display: flex; flex-direction: column-reverse; padding: 0 12px; border-left: 1px solid var(--line); }
+.facts div:first-child { padding-left: 0; border-left: 0; }
+.facts dt { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.facts dd { margin: 0; font-family: var(--sign-font); font-weight: 600; font-size: 26px; line-height: 1.08; font-variant-numeric: tabular-nums; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 8px 12px; font-weight: 600; font-size: 12.5px; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; }
+.btn:hover { background: var(--raised); }
+.btn.solid { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.btn.solid:hover { background: color-mix(in srgb, var(--ink) 86%, var(--surface)); }
+
+.plan { width: 100%; border: 1px solid var(--line); border-radius: var(--r); background: var(--raised); color: var(--ink); font: inherit; font-size: 12.5px; padding: 8px 10px; resize: vertical; }
+.venues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.venues button { width: 100%; display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; text-align: left; border: 0; background: transparent; border-radius: 7px; padding: 8px 9px; }
+.venues button:hover { background: var(--raised); }
+.venues button[aria-pressed="true"] { background: var(--raised); box-shadow: inset 3px 0 0 var(--sign); }
+.venues .n { width: 24px; height: 24px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--sign-font); font-size: 14px; font-weight: 600; }
+.venues button[aria-pressed="true"] .n { background: var(--sign); color: var(--sign-ink); border-color: var(--sign); }
+.venues .vn { min-width: 0; }
+.venues .vn b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.venues .vn span { color: var(--muted); font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.venues .vt { font-variant-numeric: tabular-nums; font-size: 12px; text-align: right; white-space: nowrap; color: var(--muted); }
+.venues .vt b { color: var(--ink); font-weight: 600; }
+.tally { margin: 0; color: var(--muted); font-size: 12px; }
+.tally b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.foot { margin: 0; color: var(--muted); font-size: 11.5px; }
+.foot a { color: inherit; }
+
+/* map stage */
+.layer { position: absolute; left: -25%; top: -25%; width: 150%; height: 150%; transform-origin: 50% 50%; pointer-events: none; }
+.pins { position: absolute; inset: 0; pointer-events: none; }
+.pin { position: absolute; left: 0; top: 0; pointer-events: auto; touch-action: none; cursor: grab; display: flex; flex-direction: column; align-items: center; margin: -37px 0 0 -15px; width: 30px; border: 0; background: none; padding: 0; z-index: 2; }
+.pin i { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: grid; place-items: center; border: 2px solid var(--surface); box-shadow: 0 2px 6px rgba(10,16,30,.38); }
+.pin i b { transform: rotate(45deg); color: #fff; font-size: 12px; font-weight: 700; font-style: normal; }
+.pin span { position: absolute; top: 2px; left: 34px; background: var(--surface); color: var(--ink); border-radius: 5px; padding: 2px 7px; font-size: 12px; font-weight: 600; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 0 0 1px var(--line), 0 2px 5px rgba(10,16,30,.16); }
+.pin { -webkit-touch-callout: none; }
+.pin i { transition: transform .16s cubic-bezier(.2,.8,.2,1), box-shadow .16s; }
+.pin.arming i { animation: pin-arm var(--hold, 350ms) linear forwards; }
+@keyframes pin-arm { from { box-shadow: 0 2px 6px rgba(10,16,30,.38), 0 0 0 0 var(--accent); } to { box-shadow: 0 2px 6px rgba(10,16,30,.38), 0 0 0 6px var(--accent); } }
+.pin.drag { z-index: 6; }
+.pin.drag i { transform: translateY(-6px) rotate(-45deg) scale(1.16); box-shadow: 0 12px 18px rgba(10,16,30,.42), 0 0 0 3px var(--accent); }
+.pin.drag::after { content: ""; position: absolute; left: 10px; top: 35px; width: 10px; height: 5px; border-radius: 50%; background: rgba(10,16,30,.5); }   /* where the pin will land */
+.stage.moving-pin, .stage.moving-pin .pin { cursor: grabbing; }
+.mark { position: absolute; left: 0; top: 0; pointer-events: auto; margin: -11px 0 0 -11px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); background: var(--ink); color: var(--surface); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0; box-shadow: 0 1px 4px rgba(10,16,30,.38); z-index: 1; }
+.mark.tuck { display: none; }
+.mark.on { background: var(--accent); color: var(--accent-ink); width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 4; font-size: 17px; }
+.mark.on::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; border: 2px solid var(--accent); animation: ring 1.9s ease-out infinite; pointer-events: none; }
+.mark.exact { background: var(--surface); color: var(--ink); border: 2px dashed var(--accent-text); box-shadow: none; }
+.mark.exact.on { background: var(--accent); color: var(--accent-ink); border-style: solid; border-color: var(--surface); }
+@keyframes ring { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+.ctl { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; background: var(--surface); border-radius: 9px; box-shadow: 0 0 0 1px var(--line), 0 2px 8px rgba(10,16,30,.14); overflow: hidden; z-index: 7; }
+.ctl button { width: 38px; height: 38px; border: 0; border-top: 1px solid var(--line); background: transparent; font-size: 19px; font-weight: 600; line-height: 1; }
+.ctl button:first-child { border-top: 0; }
+.ctl button:hover { background: var(--raised); }
+.ctl button:focus-visible { outline-offset: -3px; }
+.ctl button.txt { font-size: 11.5px; }
+.chip { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: calc(34px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 24px); background: var(--surface); border-radius: 7px; padding: 6px 10px; font-size: 12.5px; color: var(--muted); z-index: 7; box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(10,16,30,.12); }
+.chip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.mapfoot { position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(6px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; font-size: 10.5px; color: var(--label-soft); pointer-events: none; z-index: 6; }
+.mapfoot a { color: inherit; pointer-events: auto; }
+.scale { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-shadow: 0 0 3px var(--label-halo), 0 0 3px var(--label-halo); }
+.scale i { display: block; height: 5px; border: 1.5px solid var(--label-soft); border-top: 0; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 24px; z-index: 8; background: var(--map-ground); }
+.loading b { display: block; color: var(--ink); font-family: var(--sign-font); font-size: 24px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; margin-bottom: 4px; }
+.loading .btn { margin-top: 12px; pointer-events: auto; }
+.loading .bar { display: block; width: 148px; height: 3px; margin: 16px auto 0; border-radius: 2px; background: var(--line); overflow: hidden; }
+.loading .bar i { display: block; width: 0; height: 100%; background: var(--sign); transition: width .25s linear; }
+.toast { position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); border-radius: 8px; padding: 8px 9px 8px 13px; font-size: 12.5px; font-weight: 500; width: max-content; max-width: calc(100% - 116px); display: flex; align-items: center; gap: 10px; z-index: 9; box-shadow: 0 6px 18px rgba(10,16,30,.28); }
+.toast button { border: 0; background: color-mix(in srgb, var(--surface) 18%, transparent); color: inherit; border-radius: 5px; padding: 3px 9px; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+.toast span { padding-right: 4px; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 100%; grid-template-rows: minmax(0, 47%) minmax(0, 53%); }
+  .stage { grid-column: 1; grid-row: 1; }
+  .panel { grid-column: 1; grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
+  .pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .head { padding-block: 10px 9px; gap: 8px; }
+  .brand h1 { font-size: 21px; }
+  .scroll { padding-block: 13px 16px; gap: 16px; }
+  .plate { padding: 13px 16px 14px; }
+  .plate h2 { font-size: 27px; }
+  .facts dd { font-size: 23px; }
+  /* while someone types a place on a phone, the search takes the whole screen so the keyboard cannot cover the results */
+  .app.searching .panel { position: fixed; inset: 0; z-index: 20; border-top: 0; }
+  .app.searching .head, .app.searching .scroll > :not(.block), .app.searching .block > :not(.search) { display: none; }
+  .app.searching .scroll { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+  .app.searching .hits { max-height: 44vh; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="app joining" id="app">
+  <section class="panel" aria-label="Plan" data-t="aria-label">
+    <div class="head pad">
+      <div class="brand"><h1>Hanoi Midpoint</h1><div class="seg lang" role="group" aria-label="Language"><button type="button" id="lang-vi" lang="vi" aria-label="Tiếng Việt" aria-pressed="false">VI</button><button type="button" id="lang-en" lang="en" aria-label="English" aria-pressed="true">EN</button></div></div>
+    </div>
+    <div class="scroll pad" id="scroll">
+      <p class="hint" id="example-note" hidden data-t>An example to show how it works: four friends and where they would meet.</p>
+      <div class="answer" id="answer" hidden>
+        <div class="plate">
+          <span class="kick" id="answer-kicker">Meet here</span>
+          <h2 id="answer-title"></h2>
+          <p class="sub" id="answer-sub"></p>
+        </div>
+        <dl class="facts">
+          <div><dt data-t>Longest ride</dt><dd id="f-max"></dd></div>
+          <div><dt title="Longest ride minus shortest ride" data-t="text title">Biggest gap</dt><dd id="f-gap"></dd></div>
+          <div><dt data-t>Everyone, total</dt><dd id="f-sum"></dd></div>
+        </dl>
+        <div class="actions">
+          <a class="btn solid" id="gmaps" target="_blank" rel="noopener" data-t>Directions in Google Maps</a>
+          <button type="button" class="btn" id="copy" data-t>Copy plan for the group chat</button>
+        </div>
+        <textarea id="plan" class="plan" rows="7" readonly hidden aria-label="Plan text. Copy it from here." data-t="aria-label"></textarea>
+        <div class="opts">
+          <div class="seg" role="group" aria-label="How everyone travels" data-t="aria-label">
+            <button type="button" id="mode-bike" aria-pressed="true" data-t>Motorbike</button>
+            <button type="button" id="mode-car" aria-pressed="false" data-t>Car</button>
+          </div>
+          <div class="seg" role="group" aria-label="What counts as best" data-t="aria-label">
+            <button type="button" id="goal-fair" aria-pressed="true" title="Make the longest ride as short as possible" data-t="text title">Fairest</button>
+            <button type="button" id="goal-total" aria-pressed="false" title="Make everyone's travel added together as small as possible" data-t="text title">Least total</button>
+          </div>
+        </div>
+      </div>
+      <div class="block">
+        <div class="join" id="join">
+          <h2 data-t>Where are you coming from?</h2>
+          <p id="join-sub"></p>
+          <input class="field" id="join-name" type="text" autocomplete="off" placeholder="Your name" aria-label="Your name" data-t="placeholder aria-label">
+          <div class="actions" id="join-ways">
+            <button type="button" class="btn solid" id="join-saved" hidden></button>
+            <button type="button" class="btn" id="join-here" hidden data-t>Use where I am now</button>
+          </div>
+          <p class="claim" id="join-claim" hidden></p>
+        </div>
+        <div class="row-between"><span class="label" id="people-label" data-t>Who's coming</span><button type="button" class="linkbtn" id="clear" data-t>Start fresh</button></div>
+        <div class="live" id="live" hidden>
+          <button type="button" class="btn solid" id="live-start" data-t>Invite the group</button>
+          <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy" data-t>Invite the group</button></div>
+          <input class="plan" id="live-link" readonly hidden aria-label="Invite link. Copy it from here." data-t="aria-label">
+          <p class="hint" id="live-hint"></p>
+        </div>
+        <ul class="people" id="people" aria-labelledby="people-label"></ul>
+        <div class="search">
+          <input id="search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Add a friend: street, alley, building, address" aria-label="Add a friend by street, alley, building or address" data-t="placeholder aria-label">
+          <ul class="hits" id="hits" hidden></ul>
+          <p class="hint" id="hint" data-t>Can't find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.</p>
+        </div>
+      </div>
+      <button type="button" class="go" id="go" disabled data-t>Find the spot</button>
+      <div class="answer" id="answer-more" hidden>
+        <div class="row-between">
+          <span class="label" data-t>Places near the midpoint</span>
+          <div class="seg" role="group" aria-label="Kind of place" data-t="aria-label">
+            <button type="button" data-kind="0" aria-pressed="true" data-t>Café</button>
+            <button type="button" data-kind="1" aria-pressed="false" data-t>Food</button>
+            <button type="button" data-kind="2" aria-pressed="false" data-t>Bar</button>
+          </div>
+        </div>
+        <ul class="venues" id="venues"></ul>
+        <p class="tally" id="tally"></p>
+      </div>
+      <p class="foot"><span data-t>Ride times are off-peak estimates from road type and distance, with no live traffic. Roads, places and addresses ©</span> <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a><span data-t> contributors.</span></p>
+    </div>
+  </section>
+  <section class="stage" id="stage" tabindex="0" aria-label="Map of Hanoi. Tap to add a friend. Arrow keys move the map, plus and minus zoom." data-t="aria-label">
+    <canvas class="layer" id="base"></canvas>
+    <canvas class="layer" id="over"></canvas>
+    <canvas class="layer" id="glow"></canvas>
+    <div class="pins" id="pins"></div>
+    <div class="ctl">
+      <button type="button" id="zin" aria-label="Zoom in" data-t="aria-label">+</button>
+      <button type="button" id="zout" aria-label="Zoom out" data-t="aria-label">−</button>
+      <button type="button" id="zfit" class="txt" aria-label="Fit everyone on the map" title="Fit everyone on the map" data-t="text aria-label title">Fit</button>
+    </div>
+    <div class="chip" id="chip" hidden></div>
+    <div class="mapfoot"><div class="scale" id="scale" aria-hidden="true"><span></span><i></i></div><span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span></div>
+    <div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button type="button" id="toast-act" hidden></button></div>
+    <div class="loading" id="loading"><div><b data-t>Loading Hanoi's roads</b><span id="loading-text" data-t>Streets, alleys and cafés for the whole city. After this, everything runs on your device.</span></div></div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const LEAN = !!(navigator.connection && navigator.connection.saveData);   // the phone asked sites to go easy on data
+const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E', '#A0623B', '#4C5FD5', '#B03A8C', '#5F7285'];
+const MAX_PEOPLE = 12, MAX_NAME = 18, SNAP_LIMIT = 1500;
+const EXAMPLE = [['Minh', 21.0362, 105.7906], ['Linh', 20.9716, 105.7788], ['Huy', 21.0477, 105.8889], ['Trang', 21.0637, 105.8272]];
+const KIND_LABEL = ['Area', 'Homes', 'School', 'Health', 'Shop', 'Transit', 'Sight', 'Address', 'Place'];
+const $ = id => document.getElementById(id);
+const marked = new Set(), mark = n => { if (marked.has(n)) return; marked.add(n); try { performance.mark('mp-' + n); } catch (e) {} };   // first time only: data (map downloaded), map (drawn), typeable (the join step can be used), group (friends' pins shown), answer
+const app = $('app'), stage = $('stage'), base = $('base'), over = $('over'), glow = $('glow'), pinsEl = $('pins');
+const bctx = base.getContext('2d'), octx = over.getContext('2d'), gctx = glow.getContext('2d');
+const narrow = matchMedia('(max-width: 760px)');
+
+let G = null, IX = null;            // decoded city, and the place index that loads after it
+const state = { mode: 'bike', goal: 'fair', kind: 0, pick: null, people: [], result: null, example: false, nextId: 1 };   // pick: the place someone chose over the top one (-1 = the exact midpoint)
+const view = { cx: 0, cy: 0, s: 0.03 }, drawn = { cx: 0, cy: 0, s: 0.03 };
+let W = 0, H = 0, DPR = 1, css = {};
+const perf = { decode: 0, solve: 0, base: 0 };
+
+/* ------------------------------------------------------------ helpers */
+const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+/* ------------------------------------------------------------ language: English is written in the page; Vietnamese is looked up by the English sentence */
+const VI = {
+  'The meeting place is now {s}': 'Điểm hẹn bây giờ là {s}',
+  'Plan': 'Kế hoạch',
+  'How everyone travels': 'Mọi người đi bằng gì',
+  'What counts as best': 'Thế nào là tốt nhất',
+  'Make the longest ride as short as possible': 'Để người đi xa nhất phải đi ít nhất có thể',
+  'Make everyone\'s travel added together as small as possible': 'Để tổng thời gian đi của cả nhóm thấp nhất có thể',
+  'Longest ride': 'Đi lâu nhất',
+  'Biggest gap': 'Chênh lệch',
+  'Longest ride minus shortest ride': 'Người đi lâu nhất trừ người đi nhanh nhất',
+  'Everyone, total': 'Tổng cả nhóm',
+  'Directions in Google Maps': 'Chỉ đường bằng Google Maps',
+  'Copy plan for the group chat': 'Sao chép kế hoạch gửi nhóm chat',
+  'Plan text. Copy it from here.': 'Nội dung kế hoạch. Sao chép từ đây.',
+  'Add yourself, then invite the group or add friends yourself. You get the fairest place to meet for all of you.': 'Thêm vị trí của bạn, rồi mời cả nhóm hoặc tự thêm bạn bè. Bạn sẽ có điểm hẹn công bằng nhất cho cả nhóm.',
+  'An example to show how it works: four friends and where they would meet.': 'Ví dụ minh hoạ: bốn người bạn và điểm hẹn của họ.',
+  'Where are you coming from?': 'Bạn đi từ đâu?',
+  'Your name': 'Tên bạn',
+  'Use where I am now': 'Dùng vị trí hiện tại của tôi',
+  'Who\'s coming': 'Ai sẽ đến',
+  'Invite the group': 'Mời cả nhóm',
+  'Invite link. Copy it from here.': 'Link mời. Sao chép từ đây.',
+  'Places near the midpoint': 'Quán gần điểm giữa',
+  'Kind of place': 'Loại địa điểm',
+  'Café': 'Cà phê',
+  'Food': 'Ăn uống',
+  'Ride times are off-peak estimates from road type and distance, with no live traffic. Roads, places and addresses ©': 'Thời gian đi là ước tính ngoài giờ cao điểm theo loại đường và quãng đường, chưa tính tắc đường. Đường, địa điểm và địa chỉ © những người đóng góp cho',
+  ' contributors.': '.',
+  'Map of Hanoi. Tap to add a friend. Arrow keys move the map, plus and minus zoom.': 'Bản đồ Hà Nội. Chạm để thêm một người bạn. Phím mũi tên để di chuyển bản đồ, phím cộng và trừ để phóng to, thu nhỏ.',
+  'Zoom in': 'Phóng to',
+  'Zoom out': 'Thu nhỏ',
+  'Fit everyone on the map': 'Thu bản đồ cho vừa cả nhóm',
+  'Fit': 'Vừa',
+  'Loading Hanoi\'s roads': 'Đang tải đường phố Hà Nội',
+  'Streets, alleys and cafés for the whole city. After this, everything runs on your device.': 'Phố, ngõ và quán cà phê của cả thành phố. Sau bước này, mọi thứ chạy ngay trên máy bạn.',
+  'Up to {n} friends at a time': 'Tối đa {n} người một lần',
+  '{n} removed': 'Đã xoá {n}',
+  'Remove {n}': 'Xoá {n}',
+  'you': 'bạn',
+  'Near {s}': 'Gần {s}',
+  'none': 'không',
+  'longest': 'lâu nhất',
+  'Meet at {p}': 'Gặp nhau tại {p}',
+  'the midpoint near {s}': 'điểm giữa gần {s}',
+  '{n}: {km}, about {t}': '{n}: {km}, khoảng {t}',
+  'Longest ride {t} by {m} (off-peak estimate, no live traffic)': 'Người đi lâu nhất mất {t} bằng {m} (ước tính ngoài giờ cao điểm, chưa tính tắc đường)',
+  'motorbike': 'xe máy',
+  'car': 'ô tô',
+  '{n} added at {w}': 'Đã thêm {n} tại {w}',
+  'You are on the map, {n}. Hold your pin, then drag to fine-tune.': '{n} ơi, bạn đã có trên bản đồ. Giữ ghim rồi kéo để chỉnh cho chuẩn.',
+  '{n} added. Hold the pin, then drag to fine-tune.': 'Đã thêm {n}. Giữ ghim rồi kéo để chỉnh cho chuẩn.',
+  '{n} pin in this link was left out (outside the map, unreadable, or past the limit of {max})': '{n} ghim trong link này bị bỏ qua (nằm ngoài bản đồ, không đọc được, hoặc vượt giới hạn {max} người)',
+  '{n} pins in this link were left out (outside the map, unreadable, or past the limit of {max})': '{n} ghim trong link này bị bỏ qua (nằm ngoài bản đồ, không đọc được, hoặc vượt giới hạn {max} người)',
+  '{n} is on the map': '{n} đã có trên bản đồ',
+  ' It works until {t}, then the pins are deleted.': ' Link dùng được đến {t}, sau đó các ghim sẽ bị xoá.',
+  '{list} and {n} more': '{list} và {n} người nữa',
+  ' and ': ' và ',
+  'You are the first one here. Add yourself, then invite the group.': 'Bạn là người đầu tiên. Thêm vị trí của bạn rồi mời cả nhóm.',
+  '{names} are on the map. The meeting place updates as people join.': '{names} đã có trên bản đồ. Điểm hẹn sẽ cập nhật khi có thêm người.',
+  '{names} is on the map. The meeting place updates as people join.': '{names} đã có trên bản đồ. Điểm hẹn sẽ cập nhật khi có thêm người.',
+  'Add me from {w}': 'Thêm tôi từ {w}',
+  'my last place': 'chỗ lần trước',
+  'I am {n}': 'Tôi là {n}',
+  'Got it. {n} is you.': 'Đã rõ. {n} là bạn.',
+  'off {s}': 'thuộc {s}',
+  'also {s}': 'còn gọi là {s}',
+  'Short Google Maps links can\'t be opened from here. In Google Maps, press and hold on the house, then copy the coordinates or the Plus Code it shows and paste that.': 'Không mở được link rút gọn của Google Maps từ đây. Trong Google Maps, nhấn giữ vào ngôi nhà, rồi sao chép toạ độ hoặc Plus Code hiện ra và dán vào đây.',
+  'Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.': 'Không tìm thấy nhà? Phóng to rồi chạm vào, hoặc dán toạ độ hay Plus Code từ Google Maps.',
+  ' today': ' hôm nay',
+  ' tomorrow': ' ngày mai',
+  'Add your pin so we can find the fairest place to meet.': 'Thêm ghim của bạn để cả nhóm tìm chỗ gặp công bằng nhất nhé.',
+  'Searching from everyone at once checked ': 'Tìm từ tất cả mọi người cùng lúc chỉ cần xét ',
+  ' road segments before the searches met. Mapping the whole city for each friend in turn would check ': ' đoạn đường trước khi các lượt tìm gặp nhau. Nếu dò cả thành phố cho từng người thì phải xét ',
+  ' roads searched, ': ' đoạn đường đã dò, ',
+  ' out from everyone': ' từ mỗi người',
+  ' (meeting place)': ' (điểm hẹn)',
+  'That is outside the mapped part of Hanoi': 'Điểm đó nằm ngoài vùng bản đồ Hà Nội',
+  'Name': 'Tên',
+  'Nobody is on the map yet.': 'Chưa có ai trên bản đồ.',
+  'Opening the group…': 'Đang mở nhóm…',
+  'Nobody yet. Tap the map where each friend is coming from, or search below.': 'Chưa có ai. Chạm vào bản đồ ở nơi mỗi người xuất phát, hoặc tìm bên dưới.',
+  'Waiting for one more person': 'Đang chờ thêm một người',
+  'Waiting for the first two people': 'Đang chờ hai người đầu tiên',
+  'Add one more friend': 'Thêm một người nữa',
+  'Add at least two friends': 'Thêm ít nhất hai người',
+  'Replay the search': 'Xem lại quá trình tìm',
+  'Find the spot': 'Tìm điểm hẹn',
+  'The example group meets here': 'Nhóm ví dụ gặp nhau ở đây',
+  'Meet here': 'Gặp nhau ở đây',
+  'Exact midpoint': 'Đúng điểm giữa',
+  'The point on the roads that best balances everyone': 'Điểm trên đường cân bằng nhất cho mọi người',
+  'OpenStreetMap has no place of this kind near the midpoint. Try another kind.': 'OpenStreetMap chưa có địa điểm loại này gần điểm giữa. Thử loại khác nhé.',
+  'Everyone starts from the same spot, so there was nothing to search.': 'Mọi người xuất phát từ cùng một chỗ nên không cần tìm.',
+  'No road connects everyone. Move a pin closer to a main road.': 'Không có đường nào nối tất cả mọi người. Chuyển một ghim lại gần đường lớn hơn.',
+  'You are on the map. Add your name so the group knows who it is.': 'Bạn đã có trên bản đồ. Thêm tên để cả nhóm biết là ai.',
+  'Add name': 'Thêm tên',
+  'You left the live group. Your copy of the pins stays here.': 'Bạn đã rời nhóm. Bản sao các ghim vẫn ở lại trên máy bạn.',
+  'Cleared': 'Đã xoá hết',
+  'Undo': 'Hoàn tác',
+  'Copied': 'Đã sao chép',
+  'That point is outside the mapped part of Hanoi.': 'Điểm đó nằm ngoài vùng bản đồ Hà Nội.',
+  'Pinned spot': 'Điểm đã ghim',
+  'No record of that house number. Pick the street, then hold the pin and drag it to the house.': 'Chưa có số nhà đó. Chọn tên phố, rồi giữ ghim và kéo đến đúng nhà.',
+  'Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.': 'Không có tên đó trên bản đồ. Phóng to rồi chạm vào vị trí, hoặc dán toạ độ hay Plus Code từ Google Maps.',
+  'Still loading place names. Try again in a moment, or tap the map.': 'Đang tải tên địa điểm. Thử lại sau giây lát, hoặc chạm vào bản đồ.',
+  'Could not save to the group. Check the connection.': 'Không lưu được vào nhóm. Kiểm tra kết nối mạng.',
+  'Anyone with the link can add themselves.': 'Ai có link cũng tự thêm mình được.',
+  'One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.': 'Một link cho cả nhóm. Mỗi người tự thêm ghim của mình. Link dùng được một ngày, sau đó các ghim sẽ bị xoá.',
+  'Live group': 'Nhóm đang mở',
+  'Reconnecting…': 'Đang kết nối lại…',
+  'Connecting…': 'Đang kết nối…',
+  'Leave group': 'Rời nhóm',
+  'Start fresh': 'Làm lại từ đầu',
+  'Search a street, alley, building or address': 'Tìm phố, ngõ, toà nhà hoặc địa chỉ',
+  'Add someone else: street, alley, building': 'Thêm người khác: phố, ngõ, toà nhà',
+  'Add a friend: street, alley, building, address': 'Thêm bạn: phố, ngõ, toà nhà, địa chỉ',
+  'Add a friend by street, alley, building or address': 'Thêm bạn theo phố, ngõ, toà nhà hoặc địa chỉ',
+  'Or tap the map. A nearby corner is fine if you would rather not mark your exact home.': 'Hoặc chạm vào bản đồ. Chọn một góc phố gần đó cũng được nếu bạn không muốn đánh dấu đúng nhà mình.',
+  'Already on the map?': 'Đã có trên bản đồ rồi?',
+  'Finding you…': 'Đang tìm vị trí của bạn…',
+  'Adding you once the map is here…': 'Sẽ thêm bạn khi bản đồ tải xong…',
+  'Could not get your location. Search for a place or tap the map instead.': 'Không lấy được vị trí của bạn. Hãy tìm địa điểm hoặc chạm vào bản đồ.',
+  'This group link has ended. Links last a day. Your copy of the pins stays here.': 'Link nhóm này đã hết hạn. Link chỉ dùng được một ngày. Bản sao các ghim vẫn ở lại trên máy bạn.',
+  'This group link has ended. Links last a day. Start a new one to plan again.': 'Link nhóm này đã hết hạn. Link chỉ dùng được một ngày. Tạo link mới để lên kế hoạch lại.',
+  'Could not start a live group. Check the connection and try again.': 'Không tạo được nhóm. Kiểm tra kết nối mạng rồi thử lại.',
+  'Group started. The invite is copied: paste it in your group chat.': 'Đã tạo nhóm. Lời mời đã được sao chép: dán vào nhóm chat của bạn.',
+  'Invite copied': 'Đã sao chép lời mời',
+  'That is a live group link. It only works on the hosted site.': 'Đây là link nhóm. Link chỉ hoạt động trên trang chính thức.',
+  'The Hanoi map did not load': 'Không tải được bản đồ Hà Nội',
+  'Try again': 'Thử lại',
+  'Check the connection, then try again.': 'Kiểm tra kết nối mạng rồi thử lại.',
+  'Unnamed road': 'Đường chưa có tên',
+  ' min': ' phút',
+  ' h ': ' giờ ',
+  'Area': 'Khu vực',
+  'Homes': 'Khu nhà ở',
+  'School': 'Trường học',
+  'Health': 'Y tế',
+  'Shop': 'Cửa hàng',
+  'Transit': 'Giao thông',
+  'Sight': 'Điểm tham quan',
+  'Address': 'Địa chỉ',
+  'Place': 'Địa điểm',
+  'Alley': 'Ngõ',
+  'Street': 'Phố',
+  'River': 'Sông',
+  'Lake': 'Hồ',
+  'Park': 'Công viên',
+  'Coordinates': 'Toạ độ',
+  'Motorbike': 'Xe máy',
+  'Car': 'Ô tô',
+  'Fairest': 'Công bằng nhất',
+  'Least total': 'Tổng ít nhất',
+  '{n}, {w}. Hold, then drag to move.': '{n}, {w}. Giữ rồi kéo để di chuyển.',
+  '{n} moved to {w}': 'Đã chuyển {n} đến {w}',
+  'To move your pin, hold it for a moment, then drag.': 'Muốn chuyển ghim của bạn, giữ một lúc rồi kéo.',
+  'To move {n}, hold the pin for a moment, then drag.': 'Muốn chuyển {n}, giữ ghim một lúc rồi kéo.'
+};
+let LANG = 'en';
+try { const saved = localStorage.getItem('midpoint-lang'); LANG = saved === 'vi' || saved === 'en' ? saved : (navigator.languages || [navigator.language || '']).some(l => /^vi\b/i.test(l)) ? 'vi' : 'en'; } catch (e) {}
+const tr = (en, vars) => { let out = (LANG === 'vi' && VI[en]) || en; if (vars) for (const k in vars) out = out.split('{' + k + '}').join(vars[k]); return out; };
+const WORDED = [...document.querySelectorAll('[data-t]')].map(el => [el, (el.dataset.t || 'text').split(' ').map(a => [a, a === 'text' ? el.textContent : el.getAttribute(a)])]);   // every fixed piece of text, with its English
+function applyLang() {
+  document.documentElement.lang = LANG;
+  for (const [el, list] of WORDED) for (const [a, en] of list) { if (a === 'text') el.textContent = tr(en); else el.setAttribute(a, tr(en)); }
+  document.getElementById('lang-vi').setAttribute('aria-pressed', LANG === 'vi'); document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
+}
+function setLang(l) {
+  LANG = l === 'vi' ? 'vi' : 'en'; try { localStorage.setItem('midpoint-lang', LANG); } catch (e) {}
+  applyLang(); if (!G) { renderPanel(); return; }
+  if (!animating) document.getElementById('chip').hidden = true;
+  renderPanel(); renderPins(); renderMarks(); if (!hitsEl.hidden && searchEl.value.trim().length >= 2) doSearch();
+}
+document.getElementById('lang-vi').addEventListener('click', () => setLang('vi'));
+document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
+applyLang();
+const fmtMin = sec => sec < 3570 ? Math.max(1, Math.round(sec / 60)) + tr(' min') : Math.floor(Math.round(sec / 60) / 60) + tr(' h ') + String(Math.round(sec / 60) % 60).padStart(2, '0');
+const fmtKm = m => (m < 9950 ? (m / 1000).toFixed(1).replace('.', LANG === 'vi' ? ',' : '.') : Math.round(m / 1000)) + ' km';
+const nf = n => n.toLocaleString(LANG === 'vi' ? 'vi-VN' : 'en-US');
+const cleanName = s => [...String(s).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}]/gu, '').trim()].slice(0, MAX_NAME).join('');
+const initial = p => { const m = /^(?:Friend|Bạn) (\d)$/.exec(p.name.trim()); return m ? m[1] : ([...p.name.trim()][0] || '?').toUpperCase(); };
+let toastT = 0;
+function toast(msg, action, fn) {
+  const t = $('toast'), b = $('toast-act'); $('toast-text').textContent = msg; t.hidden = false;
+  b.hidden = !action; if (action) { b.textContent = action; b.onclick = () => { t.hidden = true; fn(); }; }
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, action ? 5200 : 3200);
+}
+function readTheme() {
+  const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+  const la = g('--rl-a'), lb = g('--rl-b'), lc = g('--rl-c'), ld = g('--rl-d'), rf = g('--rf'), rfa = g('--rf-a');
+  css = { ground: g('--map-ground'), green: g('--map-green'), greenInk: g('--map-green-ink'), water: g('--map-water'), waterInk: g('--map-water-ink'),
+    line: [la, la, la, lb, lb, lc, lc, ld], fill: [rfa, rfa, rf, rf, rf, rf, rf, rf], casing: g('--rc'), rail: g('--rail'),
+    label: g('--label'), soft: g('--label-soft'), halo: g('--label-halo'), accent: g('--accent'), surface: g('--surface'),
+    frontAlpha: parseFloat(g('--front-alpha')) || .5, blend: g('--front-blend') || 'source-over', font: g('--font') };
+}
+
+/* ------------------------------------------------------------ decode */
+function finishMap(c) {                      // the decoded numbers plus what only the page can make: the shapes to draw
+  const { MX, MY } = c, raw = c.raw; delete c.raw;
+  const unflat = s => { const a = nums(s), n = a.length / 2, xs = new Float32Array(n), ys = new Float32Array(n); for (let i = 0, x = 0, y = 0; i < n; i++) { x += a[2 * i]; y += a[2 * i + 1]; xs[i] = x * MX; ys[i] = -y * MY; } return { xs, ys }; };
+  const shape = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (!u.xs.length) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); } return path; };
+  const closed = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (u.xs.length < 3) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); path.closePath(); } return path; };
+  return Object.assign(c, { pkey: null, akey: null, streets: [], skey: null, wkey: null, gkey: null,
+    water: closed(raw.water), rivers: shape(raw.rivers.filter((r, i) => raw.rk[i] === '1')), canals: shape(raw.rivers.filter((r, i) => raw.rk[i] !== '1')),
+    green: closed(raw.green), rail: shape(raw.rail), runway: shape(raw.runway), stamp: new Int32Array(c.E), stampN: 0, where: new Map() });
 }
 function decodePlaces(d) {
+  if (d.v !== 3) throw new Error('unexpected place data version');
   const { MX, MY, CELL, gw, gh, bounds } = G, n0 = d.n.length, n1 = d.ah.length, N = n0 + n1;
+  const dx = nums(d.x), dy = nums(d.y), ti = nums(d.ti), ai = nums(d.ai), ax = nums(d.ax), ay = nums(d.ay), sn = nums(d.sn), sx = nums(d.sx), sy = nums(d.sy), sc = nums(d.sc);
   const x = new Float32Array(N), y = new Float32Array(N), k = new Uint8Array(N), name = new Array(N);
-  for (let i = 0, qx = 0, qy = 0; i < n0; i++) { qx += d.x[i]; qy += d.y[i]; x[i] = qx * MX; y[i] = -qy * MY; k[i] = d.k.charCodeAt(i) - 48; name[i] = d.n[i]; }
-  for (let i = 0, qx = 0, qy = 0, s = 0; i < n1; i++) { qx += d.ax[i]; qy += d.ay[i]; s += d.ai[i]; const j = n0 + i; x[j] = qx * MX; y[j] = -qy * MY; k[j] = 7; name[j] = d.ah[i] + ' ' + d.as[s]; }
+  for (let i = 0, qx = 0, qy = 0; i < n0; i++) { qx += dx[i]; qy += dy[i]; x[i] = qx * MX; y[i] = -qy * MY; k[i] = d.k.charCodeAt(i) - 48; name[i] = d.n[i]; }
+  for (let i = 0, qx = 0, qy = 0, s = 0; i < n1; i++) { qx += ax[i]; qy += ay[i]; s += ai[i]; const j = n0 + i; x[j] = qx * MX; y[j] = -qy * MY; k[j] = 7; name[j] = d.ah[i] + ' ' + d.as[s]; }
   // grid over the named places (not the addresses) for map labels
   const cellOf = i => Math.min(gw - 1, Math.max(0, Math.floor((x[i] - bounds[0]) / CELL))) + gw * Math.min(gh - 1, Math.max(0, Math.floor((y[i] - bounds[1]) / CELL)));
   const count = new Int32Array(gw * gh + 1); for (let i = 0; i < n0; i++) count[cellOf(i) + 1]++;
   for (let i = 0; i < gw * gh; i++) count[i + 1] += count[i];
   const cell = new Int32Array(n0), f = count.slice(0, gw * gh); for (let i = 0; i < n0; i++) cell[f[cellOf(i)]++] = i;
-  const alt = new Array(N); for (let i = 0, j = 0; i < d.ti.length; i++) { j += d.ti[i]; alt[j] = d.tt[i]; }
-  return { N, n0, x, y, k, name, alt, key: null, altKey: null, count, cell };
+  const alt = new Array(N); for (let i = 0, j = 0; i < ti.length; i++) { j += ti[i]; alt[j] = d.tt[i]; }
+  const streets = new Array(sn.length);     // every street and alley by name, for search only
+  for (let i = 0, n = 0; i < sn.length; i++) { n += sn[i]; streets[i] = { name: G.names[n], ctx: sc[i] ? G.names[sc[i]] : '', x: sx[i] * MX, y: -sy[i] * MY }; }
+  return { N, n0, x, y, k, name, alt, key: null, altKey: null, count, cell, streets };
 }
 const toXY = (lat, lon) => [(lon - G.origin[1]) * G.q * G.MX, -(lat - G.origin[0]) * G.q * G.MY];
 const toLatLon = (x, y) => [G.origin[0] - y / (G.q * G.MY), G.origin[1] + x / (G.q * G.MX)];
@@ -414,7 +719,7 @@ function describe(v) {            // "Phố Kim Mã, Phường Giảng Võ"
   for (let k = G.off[v]; k < G.off[v + 1]; k++) { const e = G.arcEdge[k]; if (G.ename[e] && G.ecls[e] < sc) { sc = G.ecls[e]; street = G.names[G.ename[e]]; } }
   if (!street) { let bd = 200 * 200; const c = Math.min(G.gw - 1, Math.max(0, Math.floor((G.px[v] - G.bounds[0]) / G.CELL))) + G.gw * Math.min(G.gh - 1, Math.max(0, Math.floor((G.py[v] - G.bounds[1]) / G.CELL)));
     for (let k = G.eCount[c]; k < G.eCount[c + 1]; k++) { const e = G.eCell[k]; if (!G.ename[e]) continue; const dd = Math.min((G.px[G.ea[e]] - G.px[v]) ** 2 + (G.py[G.ea[e]] - G.py[v]) ** 2, (G.px[G.eb[e]] - G.px[v]) ** 2 + (G.py[G.eb[e]] - G.py[v]) ** 2); if (dd < bd) { bd = dd; street = G.names[G.ename[e]]; } } }
-  out = [street, areaNear(G.px[v], G.py[v])].filter(Boolean).join(', ') || 'Unnamed road';
+  out = [street, areaNear(G.px[v], G.py[v])].filter(Boolean).join(', ') || tr('Unnamed road');
   G.where.set(v, out); return out;
 }
 
@@ -483,6 +788,14 @@ function rankVenues(res) {
   for (const i of list) { if (out.length === 6) break; if (out.some(o => G.pkey[o] === G.pkey[i] && Math.hypot(G.pox[o] - G.pox[i], G.poy[o] - G.poy[i]) < 150)) continue; out.push(i); }
   res.venues = out;
 }
+const pickTarget = r => state.pick === -1 ? { kind: 'exact' } : state.pick !== null && r.venues.includes(state.pick) ? { kind: 'venue', i: state.pick } : r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' };
+const syncKind = () => document.querySelectorAll('[data-kind]').forEach(o => o.setAttribute('aria-pressed', +o.dataset.kind === state.kind));
+function choose(t) { state.pick = t.kind === 'venue' ? t.i : -1; setTarget(t); pushRoom(); }   // someone tapped a place: in a live group everyone's star moves there
+function retarget(told) {                    // the kind of place or the pick changed; the travel times did not
+  const r = state.result; if (!r || !r.target) return;   // still drawing the search: finish() picks it up
+  const was = r.target.kind === 'venue' ? r.target.i : -1; rankVenues(r); const t = pickTarget(r); setTarget(t);
+  if (told && state.pick !== null && (t.kind === 'venue' ? t.i : -1) !== was) toast(tr('The meeting place is now {s}', { s: t.kind === 'venue' ? G.pn[t.i] : tr('Exact midpoint') }));
+}
 function setTarget(t) {                     // t: {kind:'venue', i} or {kind:'exact'}
   const res = state.result; if (!res) return;
   const v = t.kind === 'venue' ? venueV(t.i) : res.best;
@@ -492,18 +805,21 @@ function setTarget(t) {                     // t: {kind:'venue', i} or {kind:'ex
 }
 
 /* ------------------------------------------------------------ people */
-function freeName() { for (let n = 1; ; n++) if (!state.people.some(p => p.name === 'Friend ' + n)) return 'Friend ' + n; }
+function freeName() { const w = LANG === 'vi' ? 'Bạn ' : 'Friend '; for (let n = 1; ; n++) if (!state.people.some(p => p.name === w + n)) return w + n; }
 function addPerson(x, y, name, opts) {       // returns the person, or null with a reason shown
   opts = opts || {};
-  if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast('Up to ' + MAX_PEOPLE + ' friends at a time'); return null; }
+  if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast(tr('Up to {n} friends at a time', { n: MAX_PEOPLE })); return null; }
   const used = new Set(state.people.map(p => p.color));
-  const mine = room && !opts.remote ? cleanName(mem.get()) : '';      // in a live group, a pin you add starts with the name you used last time
-  const p = { id: state.nextId++, name: cleanName(name || '') || (mine && !state.people.some(q => q.name === mine) ? mine : '') || freeName(), x, y, v: -1, snapD: 0, color: (opts.color && !used.has(opts.color) ? opts.color : '') || COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null, mine: !!room && !opts.remote };
-  if (typeof x !== 'number' || typeof y !== 'number' || !inBounds(x, y) || !snap(p)) { if (!opts.quiet) toast('That is outside the mapped part of Hanoi'); return null; }
+  const me = !opts.remote && !opts.quiet && !state.people.some(q => q.me) && (!!room || !state.people.length);   // the first pin someone adds, alone or in a group, is their own
+  const typed = me ? cleanName($('join-name').value) : '', last = me ? cleanName(mem.get()) : '';   // it takes the name typed in the join step, or the one used last time
+  if (typed) mem.set(typed);
+  const p = { id: state.nextId++, me, name: cleanName(name || '') || typed || (last && !state.people.some(q => q.name === last) ? last : '') || freeName(), x, y, v: -1, snapD: 0, color: (opts.color && !used.has(opts.color) ? opts.color : '') || COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null, mine: !!room && !opts.remote };
+  if (typeof x !== 'number' || typeof y !== 'number' || !inBounds(x, y) || !snap(p)) { if (!opts.quiet) toast(tr('That is outside the mapped part of Hanoi')); return null; }
   state.people.push(p); return p;
 }
 let autoT = 0, live = false;             // live: an answer was showing, so keep one showing
-function changed(keepView) {                 // people, mode or goal changed
+function changed(keepView, keepPick) {       // people, mode or goal changed
+  if (!keepPick) state.pick = null;         // a pick belongs to the answer it was made on
   const had = !!state.result || live || !!(room && room.ready); state.result = null; cancelAnimationFrame(animRaf); clearTimeout(autoT); animating = false; clearGlow(); $('chip').hidden = true; $('plan').hidden = true;
   renderPanel(); renderPins(); renderMarks(); drawOverlay(0); writeHash(); pushRoom();
   live = had && state.people.length >= 2;
@@ -513,7 +829,7 @@ function resnapAll() { for (const p of state.people) snap(p); }
 function removePerson(p) {
   const i = state.people.indexOf(p); if (i < 0) return;
   state.people.splice(i, 1); state.example = false; changed(true);
-  toast(p.name + ' removed', 'Undo', () => { if (state.people.length < MAX_PEOPLE && !state.people.includes(p)) { state.people.splice(Math.min(i, state.people.length), 0, p); snap(p); changed(true); } });
+  toast(tr('{n} removed', { n: p.name }), tr('Undo'), () => { if (state.people.length < MAX_PEOPLE && !state.people.includes(p)) { state.people.splice(Math.min(i, state.people.length), 0, p); snap(p); changed(true); } });
 }
 
 /* ------------------------------------------------------------ panel */
@@ -526,55 +842,57 @@ function renderPanel() {
     const li = document.createElement('li'); li.className = 'person';
     const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = p.color; dot.textContent = initial(p);
     const who = document.createElement('div'); who.className = 'who';
-    const inp = document.createElement('input'); inp.id = 'name-' + p.id; inp.dataset.pid = p.id; inp.value = p.name; inp.maxLength = MAX_NAME; inp.setAttribute('aria-label', 'Name'); inp.autocomplete = 'off';
+    const inp = document.createElement('input'); inp.id = 'name-' + p.id; inp.dataset.pid = p.id; inp.value = p.name; inp.maxLength = MAX_NAME; inp.setAttribute('aria-label', tr('Name')); inp.autocomplete = 'off';
     inp.addEventListener('input', () => { p.name = inp.value; dot.textContent = initial(p); renderPins(); writeHash(); pushSoon(); });
-    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } if (p.mine && !/^Friend \d+$/.test(c)) mem.set(c); pushRoom(); });
+    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } if (p.me && !/^(?:Friend|Bạn) \d+$/.test(c)) mem.set(c); pushRoom(); });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
     const wh = document.createElement('span'); wh.className = 'where'; wh.textContent = p.where; wh.title = p.where;
-    who.append(inp, wh);
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.append(inp);
+    if (p.me) { const y = document.createElement('span'); y.className = 'you'; y.textContent = tr('you'); nm.append(y); }
+    who.append(nm, wh);
     if (times) { const bar = document.createElement('div'); bar.className = 'bar'; const f = document.createElement('i'); f.style.background = p.color; f.style.width = (tmax > 0 ? Math.max(3, times[i] / tmax * 100) : 3) + '%'; bar.append(f); who.append(bar); }
     const trip = document.createElement('div'); trip.className = 'trip' + (i === longest && state.people.length > 1 && tmax > 0 ? ' long' : '');
     if (times) { const b = document.createElement('b'); b.textContent = fmtMin(times[i]); trip.append(b, fmtKm(res.paths[i].metres)); }
-    const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + p.name);
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', tr('Remove {n}', { n: p.name }));
     x.addEventListener('click', () => removePerson(p));
     li.append(dot, who, trip, x); ul.append(li);
   });
   if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
-  $('example-note').hidden = !state.example;
+  $('example-note').hidden = !state.example || !!room; renderJoin();
   $('clear').hidden = !state.people.length && !room; renderLive();
-  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? 'Nobody yet. Tap the map where you are coming from, or search below.' : 'Opening the group…') : 'Nobody yet. Tap the map where each friend is coming from, or search below.'; ul.append(li); }
+  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.shown ? tr('Nobody is on the map yet.') : tr('Opening the group…')) : tr('Nobody yet. Tap the map where each friend is coming from, or search below.'); ul.append(li); }
   const go = $('go'); go.disabled = state.people.length < 2; go.classList.toggle('stale', !res && state.people.length >= 2);
-  go.textContent = state.people.length < 2 ? (state.people.length ? 'Add one more friend' : 'Add at least two friends') : res ? 'Replay the search' : 'Find the spot';
+  go.textContent = state.people.length < 2 ? (room ? (state.people.length ? tr('Waiting for one more person') : tr('Waiting for the first two people')) : state.people.length ? tr('Add one more friend') : tr('Add at least two friends')) : res ? tr('Replay the search') : tr('Find the spot');
   $('answer').hidden = $('answer-more').hidden = !times;
   if (!times) return;
   const t = res.target;
-  $('answer-kicker').textContent = t.kind === 'venue' ? 'Meet here' : 'Exact midpoint';
-  $('answer-title').textContent = t.kind === 'venue' ? G.pn[t.i] : 'Near ' + describe(t.v);
-  $('answer-sub').textContent = t.kind === 'venue' ? describe(t.v) : 'The point on the roads that best balances everyone';
+  $('answer-kicker').textContent = t.kind === 'venue' ? (state.example ? tr('The example group meets here') : tr('Meet here')) : tr('Exact midpoint');
+  $('answer-title').textContent = t.kind === 'venue' ? G.pn[t.i] : tr('Near {s}', { s: describe(t.v) });
+  $('answer-sub').textContent = t.kind === 'venue' ? describe(t.v) : tr('The point on the roads that best balances everyone');
   const tmin = Math.min(...times);
-  $('f-max').textContent = fmtMin(tmax); $('f-gap').textContent = tmax - tmin < 30 ? 'none' : fmtMin(tmax - tmin); $('f-sum').textContent = fmtMin(times.reduce((a, b) => a + b, 0));
+  $('f-max').textContent = fmtMin(tmax); $('f-gap').textContent = tmax - tmin < 30 ? tr('none') : fmtMin(tmax - tmin); $('f-sum').textContent = fmtMin(times.reduce((a, b) => a + b, 0));
   $('gmaps').href = mapsLink(t);
   const vl = $('venues'); vl.textContent = '';
   const row = (label, title, sub, v, pressed, onClick) => {
     const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', pressed);
     const n = document.createElement('span'); n.className = 'n'; n.textContent = label;
     const vn = document.createElement('span'); vn.className = 'vn'; const bb = document.createElement('b'); bb.textContent = title; const ss = document.createElement('span'); ss.textContent = sub; vn.append(bb, ss);
-    const vt = document.createElement('span'); vt.className = 'vt'; const m = document.createElement('b'); m.textContent = fmtMin(res.worst[v]); vt.append('longest ', m);
+    const vt = document.createElement('span'); vt.className = 'vt'; const m = document.createElement('b'); m.textContent = fmtMin(res.worst[v]); vt.append(tr('longest') + ' ', m);
     b.append(n, vn, vt); b.addEventListener('click', onClick); li.append(b); vl.append(li);
   };
-  res.venues.forEach((i, k) => row(String(k + 1), G.pn[i], describe(venueV(i)), venueV(i), t.kind === 'venue' && t.i === i, () => setTarget({ kind: 'venue', i })));
-  if (!res.venues.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = 'OpenStreetMap has no place of this kind near the midpoint. Try another kind.'; vl.append(li); }
-  row('◎', 'Exact midpoint', 'Near ' + describe(res.best), res.best, t.kind === 'exact', () => setTarget({ kind: 'exact' }));
+  res.venues.forEach((i, k) => row(String(k + 1), G.pn[i], describe(venueV(i)), venueV(i), t.kind === 'venue' && t.i === i, () => choose({ kind: 'venue', i })));
+  if (!res.venues.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = tr('OpenStreetMap has no place of this kind near the midpoint. Try another kind.'); vl.append(li); }
+  row('◎', tr('Exact midpoint'), tr('Near {s}', { s: describe(res.best) }), res.best, t.kind === 'exact', () => choose({ kind: 'exact' }));
   const ty = $('tally'); ty.textContent = '';
-  if (res.checked > 0) ty.append('Searching from everyone at once checked ', Object.assign(document.createElement('b'), { textContent: nf(res.checked) }), ' road segments before the searches met. Mapping the whole city for each friend in turn would check ', Object.assign(document.createElement('b'), { textContent: nf(res.oneByOne) }), '.');
-  else ty.append('Everyone starts from the same spot, so there was nothing to search.');
+  if (res.checked > 0) ty.append(tr('Searching from everyone at once checked '), Object.assign(document.createElement('b'), { textContent: nf(res.checked) }), tr(' road segments before the searches met. Mapping the whole city for each friend in turn would check '), Object.assign(document.createElement('b'), { textContent: nf(res.oneByOne) }), '.');
+  else ty.append(tr('Everyone starts from the same spot, so there was nothing to search.'));
 }
-const mapsLink = t => { const ll = toLatLon(t.x, t.y); return 'https://www.google.com/maps/search/?api=1&query=' + ll[0].toFixed(5) + ',' + ll[1].toFixed(5); };
+const mapsLink = t => { const ll = toLatLon(t.x, t.y); return 'https://www.google.com/maps/dir/?api=1&destination=' + ll[0].toFixed(5) + ',' + ll[1].toFixed(5); };   // directions from wherever the person opening it is
 function planText() {
   const res = state.result, t = res.target, times = state.people.map((p, i) => res.runs[i].dist[t.v]);
-  const lines = ['Meet at ' + (t.kind === 'venue' ? G.pn[t.i] + ' (' + describe(t.v) + ')' : 'the midpoint near ' + describe(t.v)), mapsLink(t), ''];
-  state.people.forEach((p, i) => lines.push(p.name + ': ' + fmtKm(res.paths[i].metres) + ', about ' + fmtMin(times[i])));
-  lines.push('', 'Longest ride ' + fmtMin(Math.max(...times)) + ' by ' + (state.mode === 'bike' ? 'motorbike' : 'car') + ' (off-peak estimate, no live traffic)');
+  const lines = [tr('Meet at {p}', { p: t.kind === 'venue' ? G.pn[t.i] + ' (' + describe(t.v) + ')' : tr('the midpoint near {s}', { s: describe(t.v) }) }), mapsLink(t), ''];
+  state.people.forEach((p, i) => lines.push(tr('{n}: {km}, about {t}', { n: p.name, km: fmtKm(res.paths[i].metres), t: fmtMin(times[i]) })));
+  lines.push('', tr('Longest ride {t} by {m} (off-peak estimate, no live traffic)', { t: fmtMin(Math.max(...times)), m: tr(state.mode === 'bike' ? 'motorbike' : 'car') }));
   return lines.join('\n');
 }
 
@@ -692,6 +1010,7 @@ function drawLabels(groups) {
       if (!free(x - bw / 2, y - bh / 2, bw, bh)) continue;
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.strokeStyle = css.halo; ctx.lineWidth = 3; ctx.strokeText(name, 0, 0); ctx.fillStyle = minor ? css.soft : css.label; ctx.fillText(name, 0, 0); ctx.restore(); count++; }
   }
+  if (!IX && s >= 0.7 && !LEAN) wantPlaces();   // someone zoomed in to look around: now the names are worth their download
   if (IX && s >= 0.7) {                  // named buildings and places, close in
     const [x0, y0, x1, y1] = drawnRect(), { CELL, gw, gh, bounds } = G, all = s >= 1.5;
     const cx0 = Math.max(0, Math.floor((x0 - bounds[0]) / CELL)), cx1 = Math.min(gw - 1, Math.floor((x1 - bounds[0]) / CELL)), cy0 = Math.max(0, Math.floor((y0 - bounds[1]) / CELL)), cy1 = Math.min(gh - 1, Math.floor((y1 - bounds[1]) / CELL));
@@ -750,19 +1069,19 @@ function animate() {
     res.fronts.forEach((f, i) => { const to = f.start[b]; if (to > last[i]) strokeFront(octx, i, last[i], to, rect, maxCls, rough); last[i] = to; n += to; });
     octx.globalAlpha = 1; octx.globalCompositeOperation = 'source-over';
     if (p < 1) { gctx.globalAlpha = 0.9; gctx.lineWidth = 2.4 / drawn.s; gctx.lineCap = 'round'; res.fronts.forEach((f, i) => strokeFront(gctx, i, f.start[Math.max(0, b - 14)], f.start[b], rect, maxCls, rough)); }
-    chip.textContent = ''; chip.append('Searching from all ' + state.people.length + ' at once · ', Object.assign(document.createElement('b'), { textContent: nf(n) }), ' roads · ', Object.assign(document.createElement('b'), { textContent: fmtMin(res.stop * q) }), ' out');
+    chip.textContent = ''; chip.append(Object.assign(document.createElement('b'), { textContent: nf(n) }), tr(' roads searched, '), Object.assign(document.createElement('b'), { textContent: fmtMin(res.stop * q) }), tr(' out from everyone'));
     if (p < 1) animRaf = requestAnimationFrame(step); else { ended = true; animating = false; clearGlow(); setTimeout(() => { if (!animating) chip.hidden = true; }, 1800); finish(); }
   };
   animRaf = requestAnimationFrame(step);
   setTimeout(() => step(performance.now()), T + 250);      // a tab in the background gets no animation frames; still finish with the answer
 }
-function finish() { const r = state.result; rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); writeHash(); if (userRun) { userRun = false; $('scroll').scrollTo({ top: 0, behavior: 'smooth' }); } }
+function finish() { const r = state.result; rankVenues(r); setTarget(pickTarget(r)); mark('answer'); writeHash(); if (userRun) { userRun = false; $('scroll').scrollTo({ top: 0, behavior: 'smooth' }); } }
 function run(animated, keepView) {
   clearTimeout(autoT); live = false;
   if (!G || state.people.length < 2) return;
   cancelAnimationFrame(animRaf); animating = false; clearGlow();
   const res = solve();
-  if (!res) { state.result = null; renderPanel(); renderMarks(); drawOverlay(0); toast('No road connects everyone. Move a pin closer to a main road.'); return; }
+  if (!res) { state.result = null; renderPanel(); renderMarks(); drawOverlay(0); toast(tr('No road connects everyone. Move a pin closer to a main road.')); return; }
   state.result = res;
   if (!keepView) fit(state.people.map(p => [p.x, p.y]).concat([[G.px[res.best], G.py[res.best]]]));
   if (animated && W >= 8) { renderMarks(); renderPanel(); animate(); } else { $('chip').hidden = true; finish(); }
@@ -772,19 +1091,18 @@ function run(animated, keepView) {
 function renderPins() {
   for (const el of [...pinsEl.querySelectorAll('.pin')]) el.remove();
   for (const p of state.people) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'pin'; b.dataset.id = p.id; b.setAttribute('aria-label', p.name + ', ' + p.where + '. Drag to move.');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pin'; b.dataset.id = p.id; b.setAttribute('aria-label', tr('{n}, {w}. Hold, then drag to move.', { n: p.name, w: p.where }));
     const i = document.createElement('i'); i.style.background = p.color; const l = document.createElement('b'); l.textContent = initial(p); i.append(l);
     const s = document.createElement('span'); s.textContent = p.name; b.append(i, s); pinsEl.append(b);
-    b.addEventListener('pointerdown', ev => startPinDrag(ev, p, b));
   }
   placeDom();
 }
 function renderMarks() {
   for (const el of [...pinsEl.querySelectorAll('.mark')]) el.remove();
   const res = state.result; if (!res || !res.target) { placeDom(); return; }
-  const mk = (label, x, y, on, cls, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'mark' + (on ? ' on' : '') + cls; b.textContent = on ? '★' : label; b.dataset.x = x; b.dataset.y = y; b.title = title; b.setAttribute('aria-label', title + (on ? ' (meeting place)' : '')); b.addEventListener('click', fn); b.addEventListener('pointerdown', e => e.stopPropagation()); pinsEl.append(b); };
-  res.venues.forEach((i, k) => mk(String(k + 1), G.pox[i], G.poy[i], res.target.kind === 'venue' && res.target.i === i, '', G.pn[i], () => setTarget({ kind: 'venue', i })));
-  mk('', G.px[res.best], G.py[res.best], res.target.kind === 'exact', ' exact', 'Exact midpoint', () => setTarget({ kind: 'exact' }));
+  const mk = (label, x, y, on, cls, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'mark' + (on ? ' on' : '') + cls; b.textContent = on ? '★' : label; b.dataset.x = x; b.dataset.y = y; b.title = title; b.setAttribute('aria-label', title + (on ? tr(' (meeting place)') : '')); b.addEventListener('click', fn); b.addEventListener('pointerdown', e => e.stopPropagation()); pinsEl.append(b); };
+  res.venues.forEach((i, k) => mk(String(k + 1), G.pox[i], G.poy[i], res.target.kind === 'venue' && res.target.i === i, '', G.pn[i], () => choose({ kind: 'venue', i })));
+  mk('', G.px[res.best], G.py[res.best], res.target.kind === 'exact', ' exact', tr('Exact midpoint'), () => choose({ kind: 'exact' }));
   placeDom();
 }
 function placeDom() {
@@ -797,29 +1115,64 @@ function placeDom() {
   marks.sort((a, b) => (b.classList.contains('on') - a.classList.contains('on')));
   for (const el of marks) { const hit = placed.some(q => Math.hypot(q[0] - el._sx, q[1] - el._sy) < 21); el.classList.toggle('tuck', hit && !el.classList.contains('on')); if (!hit || el.classList.contains('on')) placed.push([el._sx, el._sy]); }
 }
-function startPinDrag(ev, p, el) {
-  ev.stopPropagation(); ev.preventDefault(); try { el.setPointerCapture(ev.pointerId); } catch (e) {} el.classList.add('drag');
-  const r = stage.getBoundingClientRect(); let moved = false;
-  const ox = sx(p.x) - (ev.clientX - r.left), oy = sy(p.y) - (ev.clientY - r.top);
-  const move = e => { if (!moved && Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) < 4) return; moved = true; el._x = wx(e.clientX - r.left + ox); el._y = wy(e.clientY - r.top + oy); placeDom(); };
-  const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); el.classList.remove('drag');
-    if (moved) { const old = [p.x, p.y, p.label]; p.x = el._x; p.y = el._y; p.label = '';
-      if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true); } else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast('That is outside the mapped part of Hanoi'); } }
-    el._x = el._y = undefined; placeDom(); };
-  el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+/* A pin moves only after a short hold. A swipe that starts on a pin pans the map, so nobody's pin is dragged by accident. */
+const HOLD_TOUCH = 350, HOLD_MOUSE = 180, SLOP = 7;
+let pinHold = null, pinDrag = null;
+const pinEl = d => d.el.isConnected ? d.el : (d.el = pinsEl.querySelector('.pin[data-id="' + d.p.id + '"]'));   // pins are redrawn when the group changes
+function armPin(e, el) {
+  const p = state.people.find(q => q.id === +el.dataset.id); if (!p) return;
+  const ms = e.pointerType === 'mouse' ? HOLD_MOUSE : HOLD_TOUCH;
+  pinHold = { id: e.pointerId, p, el, x: e.clientX, y: e.clientY, touch: e.pointerType !== 'mouse', timer: setTimeout(liftPin, ms) };
+  el.style.setProperty('--hold', ms + 'ms'); el.classList.add('arming');
 }
+function disarmPin() { if (!pinHold) return; clearTimeout(pinHold.timer); const el = pinEl(pinHold); if (el) el.classList.remove('arming'); pinHold = null; }
+function liftPin() {
+  const h = pinHold; if (!h) return; pinHold = null; const el = pinEl(h); if (el) el.classList.remove('arming');
+  if (!el || !state.people.includes(h.p)) return;
+  ptrs.delete(h.id); gesture = null;                    // from here the finger moves the pin, not the map
+  const r = stage.getBoundingClientRect();
+  pinDrag = { id: h.id, p: h.p, el, x: h.x, y: h.y, touch: h.touch, ox: sx(h.p.x) - (h.x - r.left), oy: sy(h.p.y) - (h.y - r.top), far: 0, moved: false };
+  el.classList.add('drag'); stage.classList.add('moving-pin'); $('toast').hidden = true;
+  try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+}
+function dragPin(e) {
+  const d = pinDrag, el = pinEl(d); if (!el || !state.people.includes(d.p)) { dropPin(false); return; }
+  el.classList.add('drag');
+  const dist = Math.hypot(e.clientX - d.x, e.clientY - d.y); if (!d.moved && dist < 4) return;
+  d.moved = true; d.far = Math.max(d.far, dist);
+  const rise = d.touch ? Math.max(0, d.oy + 30) * Math.min(1, d.far / 36) : 0;   // under a finger the pin climbs until its tip shows above the fingertip
+  const r = stage.getBoundingClientRect(); el._x = wx(e.clientX - r.left + d.ox); el._y = wy(e.clientY - r.top + d.oy - rise); placeDom();
+}
+function dropPin(keep) {
+  const d = pinDrag; if (!d) return; pinDrag = null; stage.classList.remove('moving-pin');
+  const el = pinEl(d), p = d.p; if (el) el.classList.remove('drag');
+  if (keep && d.moved && el && el._x !== undefined && state.people.includes(p)) {
+    const old = [p.x, p.y, p.label], wasExample = state.example; p.x = el._x; p.y = el._y; p.label = '';
+    if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true); if (p.me && !room) saveHome(p);
+      toast(tr('{n} moved to {w}', { n: p.name, w: p.where.split(',')[0] }), tr('Undo'), () => { if (!state.people.includes(p)) return; p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); state.example = wasExample; changed(true); }); }
+    else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast(tr('That is outside the mapped part of Hanoi')); }
+  }
+  if (el) el._x = el._y = undefined; placeDom();
+}
+function pinHint(p) { toast(p.me ? tr('To move your pin, hold it for a moment, then drag.') : tr('To move {n}, hold the pin for a moment, then drag.', { n: p.name })); }
 
 /* ------------------------------------------------------------ gestures */
 const ptrs = new Map(); let gesture = null, lastTap = null;
 stage.addEventListener('pointerdown', e => {
-  if (e.target.closest('.ctl, .pin, .mark, .toast, .mapfoot a, .loading')) return;
+  if (pinDrag || e.target.closest('.ctl, .mark, .toast, .mapfoot a, .loading')) return;
+  const pin = e.target.closest('.pin'); if (pin) e.preventDefault();
   try { stage.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-  if (ptrs.size === 1) gesture = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, multi: false };
-  else if (gesture) gesture.multi = true;
+  if (ptrs.size === 1) { gesture = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, multi: false, pin: null };
+    if (pin && G && e.button === 0) { armPin(e, pin); gesture.pin = pinHold && pinHold.p; } }
+  else { if (gesture) gesture.multi = true; disarmPin(); }            // a second finger means a pinch, not a pick-up
 });
 stage.addEventListener('pointermove', e => {
+  if (pinDrag) { if (e.pointerId === pinDrag.id) dragPin(e); return; }
   const prev = ptrs.get(e.pointerId); if (!prev || !G) return;
   const r = stage.getBoundingClientRect();
+  if (pinHold && e.pointerId === pinHold.id) {             // still deciding: a steady finger picks the pin up, a moving one pans the map
+    if (Math.hypot(e.clientX - pinHold.x, e.clientY - pinHold.y) <= SLOP) return;
+    disarmPin(); if (gesture) gesture.moved = true; ptrs.set(e.pointerId, [e.clientX, e.clientY]); return; }
   if (ptrs.size === 1) { view.cx -= (e.clientX - prev[0]) / view.s; view.cy -= (e.clientY - prev[1]) / view.s; if (gesture && Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) > 7) gesture.moved = true; ptrs.set(e.pointerId, [e.clientX, e.clientY]); viewChanged(); }
   else if (ptrs.size === 2) { const other = [...ptrs.entries()].find(([id]) => id !== e.pointerId)[1];
     const d0 = Math.hypot(prev[0] - other[0], prev[1] - other[1]), d1 = Math.hypot(e.clientX - other[0], e.clientY - other[1]);
@@ -828,10 +1181,15 @@ stage.addEventListener('pointermove', e => {
     if (d0 > 0 && d1 > 0) zoomAt(d1 / d0, (e.clientX + other[0]) / 2 - r.left, (e.clientY + other[1]) / 2 - r.top); else viewChanged(); }
 });
 const endPtr = e => {
+  if (pinDrag) { if (e.pointerId === pinDrag.id) dropPin(e.type === 'pointerup'); return; }
+  if (pinHold && e.pointerId === pinHold.id) disarmPin();
   if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
   if (ptrs.size === 0 && gesture && G) { const g = gesture; gesture = null;
-    if (e.type === 'pointerup' && !g.moved && !g.multi && performance.now() - g.t < 500) { const r = stage.getBoundingClientRect(); tapMap(e.clientX - r.left, e.clientY - r.top); } }
+    if (e.type === 'pointerup' && !g.moved && !g.multi && performance.now() - g.t < 500) { if (g.pin) pinHint(g.pin); else { const r = stage.getBoundingClientRect(); tapMap(e.clientX - r.left, e.clientY - r.top); } } }
 };
+stage.addEventListener('contextmenu', e => { if (e.target.closest('.pin')) e.preventDefault(); });   // a long press on a pin picks it up, with no menu
+addEventListener('keydown', e => { if (e.key === 'Escape' && pinDrag) dropPin(false); });
+addEventListener('blur', () => { disarmPin(); dropPin(false); });
 stage.addEventListener('pointerup', endPtr); stage.addEventListener('pointercancel', endPtr);
 stage.addEventListener('wheel', e => { if (!G) return; e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
 stage.addEventListener('keydown', e => {
@@ -852,7 +1210,14 @@ function tapMap(x, y) {
   if (!p) { state.people = keep; lastTap = { t: now, x, y, p: null }; return; }
   state.example = false; lastTap = { t: now, x, y, p, restore };
   changed(true);
-  toast(p.name + ' added at ' + p.where.split(',')[0], 'Undo', () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
+  if (p.me) welcome(p); else toast(tr('{n} added at {w}', { n: p.name, w: p.where.split(',')[0] }), tr('Undo'), () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
+}
+function saveHome(p) { const ll = toLatLon(p.x, p.y); store.set('midpoint-home', { la: +ll[0].toFixed(5), lo: +ll[1].toFixed(5), w: p.where.split(',')[0] }); }   // kept on this device only
+function welcome(p) {                        // this device's own pin just went on the map
+  if (!room) saveHome(p); $('scroll').scrollTop = 0;
+  const ask = () => { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } };
+  if (/^(?:Friend|Bạn) \d+$/.test(p.name)) toast(tr('You are on the map. Add your name so the group knows who it is.'), tr('Add name'), ask);
+  else toast(tr('You are on the map, {n}. Hold your pin, then drag to fine-tune.', { n: p.name }));
 }
 $('zin').addEventListener('click', () => zoomAt(1.6, W / 2, H / 2));
 $('zout').addEventListener('click', () => zoomAt(1 / 1.6, W / 2, H / 2));
@@ -862,10 +1227,10 @@ $('zfit').addEventListener('click', () => { if (G) fit(state.people.map(p => [p.
 function seg(ids, key, values, after) { ids.forEach((id, i) => $(id).addEventListener('click', () => { if (state[key] === values[i]) return; state[key] = values[i]; ids.forEach((j, k) => $(j).setAttribute('aria-pressed', k === i)); after(); })); }
 seg(['mode-bike', 'mode-car'], 'mode', ['bike', 'car'], () => { if (!G) return; resnapAll(); changed(true); });
 seg(['goal-fair', 'goal-total'], 'goal', ['fair', 'total'], () => { if (!G) return; changed(true); });
-document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { state.kind = +b.dataset.kind; document.querySelectorAll('[data-kind]').forEach(o => o.setAttribute('aria-pressed', o === b)); const r = state.result; if (r && r.target) { rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); } }));
+document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { state.kind = +b.dataset.kind; state.pick = null; syncKind(); retarget(); pushRoom(); }));
 $('go').addEventListener('click', () => { userRun = true; run(true); });
-$('clear').addEventListener('click', () => { if (room) { leaveRoom(); toast('You left the live group. Your copy of the pins stays here.'); return; } const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast('Cleared', 'Undo', () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
-$('copy').addEventListener('click', async () => { const b = $('copy'), text = planText(); try { await navigator.clipboard.writeText(text); b.textContent = 'Copied'; } catch (e) { const ta = $('plan'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); return; } setTimeout(() => { b.textContent = 'Copy plan for the group chat'; }, 1600); });
+$('clear').addEventListener('click', () => { if (room) { leaveRoom(); toast(tr('You left the live group. Your copy of the pins stays here.')); return; } const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast(tr('Cleared'), tr('Undo'), () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
+$('copy').addEventListener('click', async () => { const b = $('copy'), text = planText(); try { await navigator.clipboard.writeText(text); b.textContent = tr('Copied'); } catch (e) { const ta = $('plan'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); return; } setTimeout(() => { b.textContent = tr('Copy plan for the group chat'); }, 1600); });
 
 /* ------------------------------------------------------------ finding a place by name, address, coordinates or Plus Code */
 const OLC = '23456789CFGHJMPQRVWX';
@@ -907,10 +1272,10 @@ function lookup(qv) {
     if (!multi) return 9; for (let k = 0; k < toks.length; k++) if (!hasTok(key, toks[k], numeric[k])) return 9; return 4; };
   const pool = [];
   G.akey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.areas[i]; pool.push([s + 0.05, a.name, 'Area', a.x, a.y, '']); } });
-  G.skey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.streets[i]; pool.push([s + 0.2, a.name, /^(ng[õo]|ng[áa]ch|h[ẻe]m)(\s|$)/i.test(a.name) ? 'Alley' : 'Street', a.x, a.y, a.ctx ? 'off ' + a.ctx : '']); } });
-  G.wkey.forEach((k, i) => { const s = Math.min(score(k[0]), k[1] ? score(k[1]) + 0.1 : 9); if (s < 9) { const a = G.wlabels[i]; pool.push([s + 0.1, a.name, /^s[oô]ng /i.test(a.name) ? 'River' : 'Lake', a.x, a.y, a.alt && score(k[0]) > s ? 'also ' + a.alt : '']); } });
+  G.skey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.streets[i]; pool.push([s + 0.2, a.name, /^(ng[õo]|ng[áa]ch|h[ẻe]m)(\s|$)/i.test(a.name) ? 'Alley' : 'Street', a.x, a.y, a.ctx ? tr('off {s}', { s: a.ctx }) : '']); } });
+  G.wkey.forEach((k, i) => { const s = Math.min(score(k[0]), k[1] ? score(k[1]) + 0.1 : 9); if (s < 9) { const a = G.wlabels[i]; pool.push([s + 0.1, a.name, /^s[oô]ng /i.test(a.name) ? 'River' : 'Lake', a.x, a.y, a.alt && score(k[0]) > s ? tr('also {s}', { s: a.alt }) : '']); } });
   G.gkey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.glabels[i]; pool.push([s + 0.15, a.name, 'Park', a.x, a.y, '']); } });
-  if (IX) for (let i = 0; i < IX.N; i++) { let s = score(IX.key[i]), via = ''; const ak = IX.altKey[i]; if (ak !== undefined && s > 0) { const s2 = score(ak) + 0.1; if (s2 < s) { s = s2; via = 'also ' + IX.alt[i]; } } if (s < 9) pool.push([s + WEIGHT[IX.k[i]], IX.name[i], KIND_LABEL[IX.k[i]], IX.x[i], IX.y[i], via]); }
+  if (IX) for (let i = 0; i < IX.N; i++) { let s = score(IX.key[i]), via = ''; const ak = IX.altKey[i]; if (ak !== undefined && s > 0) { const s2 = score(ak) + 0.1; if (s2 < s) { s = s2; via = tr('also {s}', { s: IX.alt[i] }); } } if (s < 9) pool.push([s + WEIGHT[IX.k[i]], IX.name[i], KIND_LABEL[IX.k[i]], IX.x[i], IX.y[i], via]); }
   G.pkey.forEach((k, i) => { const s = score(k); if (s < 9) pool.push([s + 0.6, G.pn[i], ['Café', 'Food', 'Bar'][G.pk[i]], G.pox[i], G.poy[i], '']); });
   pool.sort((a, b) => a[0] - b[0] || a[1].length - b[1].length || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
   const out = [];
@@ -923,21 +1288,21 @@ function doSearch() {
   const raw = searchEl.value.slice(0, 300); hits = []; hitOn = 0; hitsEl.textContent = ''; hitsEl.hidden = true;
   if (!G || raw.trim().length < 2) return;
   const loc = parseLocation(raw); let lead = '';
-  if (loc && loc.short) { note('Short Google Maps links can\'t be opened from here. In Google Maps, press and hold on the house, then copy the coordinates or the Plus Code it shows and paste that.'); return; }
-  if (loc) { const xy = toXY(loc.lat, loc.lon); if (!(Math.abs(loc.lat) <= 90) || !inBounds(xy[0], xy[1])) { note('That point is outside the mapped part of Hanoi.'); return; }
-    hits = [[0, loc.lat.toFixed(5) + ', ' + loc.lon.toFixed(5), loc.how, xy[0], xy[1], '', 'Pinned spot']]; }
+  if (loc && loc.short) { note(tr('Short Google Maps links can\'t be opened from here. In Google Maps, press and hold on the house, then copy the coordinates or the Plus Code it shows and paste that.')); return; }
+  if (loc) { const xy = toXY(loc.lat, loc.lon); if (!(Math.abs(loc.lat) <= 90) || !inBounds(xy[0], xy[1])) { note(tr('That point is outside the mapped part of Hanoi.')); return; }
+    hits = [[0, loc.lat.toFixed(5) + ', ' + loc.lon.toFixed(5), loc.how, xy[0], xy[1], '', tr('Pinned spot')]]; }
   else {
     ensureKeys();
     const qv = fold(raw).replace(/[^a-z0-9/+&'-]+/g, ' ').replace(/\s+/g, ' ').trim(); if (qv.length < 2) return;
     const words = qv.split(' ');
     hits = lookup(qv);
     if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w)).join(' '); if (t.length >= 2 && t !== qv) hits = lookup(t); }
-    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w) && !/^\d+[a-z]?(\/\d+[a-z]?)*$/.test(w)).join(' '); if (t.length >= 2 && t !== qv) { hits = lookup(t); if (hits.length) lead = 'No record of that house number. Pick the street, then drag the pin to the house.'; } }
-    if (!hits.length) { note(IX ? 'Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.' : 'Still loading place names. Try again in a moment, or tap the map.'); return; }
+    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w) && !/^\d+[a-z]?(\/\d+[a-z]?)*$/.test(w)).join(' '); if (t.length >= 2 && t !== qv) { hits = lookup(t); if (hits.length) lead = tr('No record of that house number. Pick the street, then hold the pin and drag it to the house.'); } }
+    if (!hits.length) { note(IX ? tr('Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.') : tr('Still loading place names. Try again in a moment, or tap the map.')); return; }
   }
   if (lead) note(lead);
   hits.forEach((h, i) => { const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; if (i === 0) b.className = 'on';
-    const near = areaNear(h[3], h[4]), t = document.createElement('b'); t.textContent = h[1]; const s = document.createElement('small'); s.textContent = [h[2], h[5], near !== h[1] ? near : ''].filter(Boolean).join(' · ');
+    const near = areaNear(h[3], h[4]), t = document.createElement('b'); t.textContent = h[1]; const s = document.createElement('small'); s.textContent = [tr(h[2]), h[5], near !== h[1] ? near : ''].filter(Boolean).join(' · ');
     b.append(t, s); b.addEventListener('click', () => pickHit(i)); li.append(b); hitsEl.append(li); });
   hitsEl.hidden = false;
 }
@@ -949,11 +1314,12 @@ function pickHit(i) {
   if (!p) { state.people = keep; return; }
   state.example = false; searchEl.value = ''; hitsEl.hidden = true; hits = []; app.classList.remove('searching');
   changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged();
-  if (narrow.matches) { searchEl.blur(); toast(p.name + ' added. Drag the pin to fine-tune.'); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
+  if (p.me) { if (narrow.matches) searchEl.blur(); welcome(p); }
+  else if (narrow.matches) { searchEl.blur(); toast(tr('{n} added. Hold the pin, then drag to fine-tune.', { n: p.name })); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
 }
 let searchT = 0;
-searchEl.addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });
-searchEl.addEventListener('focus', () => { if (narrow.matches) app.classList.add('searching'); const sc = $('scroll'); sc.scrollTo({ top: searchEl.closest('.search').offsetTop - sc.offsetTop - 8, behavior: 'smooth' }); if (searchEl.value.trim().length >= 2 && hitsEl.hidden) doSearch(); });
+searchEl.addEventListener('input', () => { wantPlaces(); clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });
+searchEl.addEventListener('focus', () => { wantPlaces(); if (narrow.matches) app.classList.add('searching'); const sc = $('scroll'); sc.scrollTo({ top: searchEl.closest('.search').offsetTop - sc.offsetTop - 8, behavior: 'smooth' }); if (searchEl.value.trim().length >= 2 && hitsEl.hidden) doSearch(); });
 searchEl.addEventListener('blur', () => { setTimeout(() => { if (!document.activeElement || !document.activeElement.closest('.search')) { app.classList.remove('searching'); hitsEl.hidden = true; } }, 220); });
 searchEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchT); if (!hits.length) doSearch(); pickHit(hitOn); } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!hits.length) return; hitOn = (hitOn + (e.key === 'ArrowDown' ? 1 : hits.length - 1)) % hits.length; [...hitsEl.querySelectorAll('button')].forEach((b, i) => { b.classList.toggle('on', i === hitOn); if (i === hitOn) b.scrollIntoView({ block: 'nearest' }); }); } else if (e.key === 'Escape') { hitsEl.hidden = true; searchEl.blur(); } });
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.search')) hitsEl.hidden = true; });
@@ -987,22 +1353,29 @@ function loadHash(hash) {
   state.mode = h.mode; state.goal = h.goal; state.people = []; state.example = false; state.result = null;
   syncSegs();
   let dropped = h.dropped; for (const [x, y, name] of h.pins) if (!addPerson(x, y, name, { quiet: true })) dropped++;
-  if (dropped) toast(dropped + (dropped === 1 ? ' pin in this link was' : ' pins in this link were') + ' left out (outside the map, unreadable, or past the limit of ' + MAX_PEOPLE + ')');
+  if (dropped) toast(tr(dropped === 1 ? '{n} pin in this link was left out (outside the map, unreadable, or past the limit of {max})' : '{n} pins in this link were left out (outside the map, unreadable, or past the limit of {max})', { n: dropped, max: MAX_PEOPLE }));
   return state.people.length > 0;
 }
 function loadExample() { state.people = []; state.example = true; for (const [name, lat, lon] of EXAMPLE) { const xy = toXY(lat, lon); addPerson(xy[0], xy[1], name, { quiet: true }); } }
 
 /* ------------------------------------------------------------ live group: one set of pins shared through a small database (#g-<group>) */
-let room = null, pushT = 0;          // room: { id, doc: { s, pins }, es, ready, shown, applying, hidden, q, status }
+let room = null, pushT = 0;          // room: { id, doc: { s, pins }, es, ready, early, shown, applying, hidden, q, status, born }
+let ended = false;                   // the group in the link turned out to be over before the map arrived
+let TTL = 864e5;                     // a group lasts one day from the moment it is started; the database rules enforce the same limit
 const mem = { get() { try { return localStorage.getItem('midpoint-name') || ''; } catch (e) { return ''; } }, set(v) { try { localStorage.setItem('midpoint-name', v); } catch (e) {} } };
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const meIn = id => { const m = store.get('midpoint-me'); return m && typeof m === 'object' && m.id === id && typeof m.pin === 'string' ? m.pin : ''; };   // this device's own pin in that group
+const homeRaw = () => { const h = store.get('midpoint-home'); return h && typeof h === 'object' && Number.isFinite(h.la) && Number.isFinite(h.lo) ? { la: h.la, lo: h.lo, w: cleanName(typeof h.w === 'string' ? h.w : '') } : null; };   // the place this device used last; readable before the map is
+const homeGet = () => { const h = homeRaw(); if (!h) return null; const xy = toXY(h.la, h.lo); return inBounds(xy[0], xy[1]) ? { x: xy[0], y: xy[1], w: h.w } : null; };
 const rid = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => (b % 36).toString(36)).join(''); };
 const roomUrl = path => LIVE_DB + '/rooms/' + room.id + (path ? '/' + path : '') + '.json';
+const bornUrl = id => LIVE_DB + '/idx/' + id + '.json';   // idx/<group> holds the time the group was started, set by the database's own clock
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v), near = (a, b) => Math.abs(a - b) < 2e-6;
-const newRoom = id => ({ id, doc: { s: {}, pins: {} }, es: null, ready: false, shown: false, applying: false, hidden: new Set(), q: Promise.resolve(), status: 'connecting', failed: false, retry: 0 });
-function send(method, path, body) {
+const newRoom = id => ({ id, doc: { s: {}, pins: {} }, es: null, ready: false, early: false, shown: false, applying: false, hidden: new Set(), q: Promise.resolve(), status: 'connecting', failed: false, retry: 0, born: 0, endT: 0, refused: 0, adopted: false });
+function send(method, path, body, quiet) {   // quiet: an extra the database may refuse without it counting as a failed save
   const r = room, url = roomUrl(path);
   r.q = r.q.then(() => fetch(url, { method, body: body === undefined ? undefined : JSON.stringify(body) })).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); })
-    .catch(err => { console.error(err); r.failed = true; if (room === r && r.shown) toast('Could not save to the group. Check the connection.'); });
+    .catch(err => { if (quiet) { console.warn(err); return; } console.error(err); r.failed = true; if (room === r && r.shown) toast(tr('Could not save to the group. Check the connection.')); });
 }
 function pushSoon() { clearTimeout(pushT); if (room) pushT = setTimeout(pushRoom, 700); }
 function pushRoom() {                        // send whatever differs between this screen and the group's copy
@@ -1011,12 +1384,16 @@ function pushRoom() {                        // send whatever differs between th
   for (const p of state.people) {
     if (!p.rid) p.rid = rid(8); seen.add(p.rid);
     const ll = toLatLon(p.x, p.y), la = +ll[0].toFixed(5), lo = +ll[1].toFixed(5), n = cleanName(p.name) || 'Friend', cur = pins[p.rid];
+    if (p.me) { const k = p.rid + la + ',' + lo; if (r.meKey !== k) { r.meKey = k; store.set('midpoint-me', { id: r.id, pin: p.rid }); store.set('midpoint-home', { la, lo, w: p.where.split(',')[0] }); } }   // kept on this device only
     if (!isObj(cur)) { const d = { la, lo, n, t: Date.now(), c: Math.max(0, COLORS.indexOf(p.color)) }; pins[p.rid] = d; send('PUT', 'pins/' + p.rid, d); }
     else { const d = {}; if (!near(cur.la, la) || !near(cur.lo, lo)) { d.la = la; d.lo = lo; } if (cur.n !== n) d.n = n; if (d.la !== undefined || d.n !== undefined) { Object.assign(cur, d); send('PATCH', 'pins/' + p.rid, d); } }
   }
   for (const k of Object.keys(pins)) if (!seen.has(k) && !r.hidden.has(k)) { delete pins[k]; send('DELETE', 'pins/' + k); }
   const m = state.mode === 'bike' ? 'b' : 'c', g = state.goal === 'fair' ? 'f' : 't';
-  if (r.doc.s.m !== m || r.doc.s.g !== g) { r.doc.s = { m, g }; send('PUT', 's', r.doc.s); }
+  const s = r.doc.s; if (s.m !== m || s.g !== g) { s.m = m; s.g = g; send('PATCH', 's', { m, g }); }
+  const k = state.kind || null, pk = state.pick;   // the kind of place and the pick travel with the group too
+  if ((s.k || null) !== k) { if (k) s.k = k; else delete s.k; send(k ? 'PUT' : 'DELETE', 's/k', k || undefined, true); }
+  if ((Number.isInteger(s.p) ? s.p : null) !== pk) { if (pk !== null) s.p = pk; else delete s.p; send(pk !== null ? 'PUT' : 'DELETE', 's/p', pk !== null ? pk : undefined, true); }
 }
 function applyEvent(r, path, data, patch) {  // one change from the database, applied to our copy of the group
   const keys = path.split('/').filter(Boolean); if (keys.some(k => k === '__proto__' || k === 'constructor' || k === 'prototype')) return;
@@ -1026,16 +1403,18 @@ function applyEvent(r, path, data, patch) {  // one change from the database, ap
   if (!isObj(r.doc.pins)) r.doc.pins = {}; if (!isObj(r.doc.s)) r.doc.s = {};
 }
 function pullRoom(full) {                    // make this screen match the group's copy; full = the database just sent the whole group
-  const r = room, pins = r.doc.pins, first = !r.shown; r.shown = true; r.applying = true; r.hidden.clear();
+  const r = room, pins = r.doc.pins, first = !r.shown; r.shown = true; r.applying = true; r.hidden.clear(); mark('group');
   let moved = false, renamed = false, joined = '';
   const s = r.doc.s, mode = s.m === 'c' ? 'car' : s.m === 'b' ? 'bike' : state.mode, goal = s.g === 't' ? 'total' : s.g === 'f' ? 'fair' : state.goal;
   if (mode !== state.mode || goal !== state.goal) { const re = mode !== state.mode; state.mode = mode; state.goal = goal; syncSegs(); if (re) resnapAll(); moved = true; }
+  const kind = s.k === 1 || s.k === 2 ? s.k : 0, pick = Number.isInteger(s.p) && s.p >= -1 && s.p < G.P ? s.p : null, repick = kind !== state.kind || pick !== state.pick;
+  if (repick) { state.kind = kind; state.pick = pick; syncKind(); }
   const ok = k => /^[0-9a-z]{1,20}$/.test(k) && isObj(pins[k]) && Number.isFinite(pins[k].la) && Number.isFinite(pins[k].lo);
   const ids = Object.keys(pins).filter(k => ok(k) || (r.hidden.add(k), false)).sort((a, b) => ((+pins[a].t || 0) - (+pins[b].t || 0)) || (a < b ? -1 : 1));
   const have = new Map(state.people.filter(p => p.rid).map(p => [p.rid, p])), before = state.people.length, next = []; state.people = next;
   for (const k of ids) {
     const d = pins[k], xy = toXY(d.la, d.lo), name = cleanName(typeof d.n === 'string' ? d.n : ''); let p = have.get(k);
-    if (!p) { p = addPerson(xy[0], xy[1], name, { quiet: true, remote: true, color: COLORS[d.c] }); if (!p) { r.hidden.add(k); continue; } p.rid = k; moved = true; if (!first) joined = p.name; continue; }
+    if (!p) { p = addPerson(xy[0], xy[1], name, { quiet: true, remote: true, color: COLORS[d.c] }); if (!p) { r.hidden.add(k); continue; } p.rid = k; if (k === meIn(r.id) && !next.some(q => q.me)) p.me = p.mine = true; moved = true; if (!first) joined = p.name; continue; }
     const ll = toLatLon(p.x, p.y);
     if (!near(+ll[0].toFixed(5), d.la) || !near(+ll[1].toFixed(5), d.lo)) { const old = [p.x, p.y, p.label]; p.x = xy[0]; p.y = xy[1]; p.label = ''; if (inBounds(p.x, p.y) && snap(p)) moved = true; else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); } }
     const act = document.activeElement, typing = act && act.dataset && +act.dataset.pid === p.id;
@@ -1046,37 +1425,124 @@ function pullRoom(full) {                    // make this screen match the group
   if (resend) { r.failed = false; for (const p of have.values()) if (p.mine && !next.includes(p) && next.length < MAX_PEOPLE) next.push(p); }
   if (next.length !== before) moved = true;
   r.applying = false;
-  if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.map(p => [p.x, p.y])); pushRoom(); }
-  else if (moved || resend) changed(true);
-  else if (renamed) { renderPanel(); renderPins(); }
-  if (joined) toast(joined + ' is on the map');
+  if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); fit(next.length >= 2 || next.some(p => p.me) ? next.map(p => [p.x, p.y]) : []); if (next.length >= 2) afterPaint(() => firstRun(() => room === r)); pushRoom(); nowReady(); }   // someone still to add themselves gets the whole city, not a close-up of the first pin; the pins are drawn before the search for the place starts
+  else if (moved || resend) changed(!(joined && !pinDrag && !pinHold && !app.classList.contains('searching')), true);
+  else { if (renamed) { renderPanel(); renderPins(); } if (repick) retarget(true); }
+  if (joined) toast(tr('{n} is on the map', { n: joined }));
 }
 function setLive(status) { if (room) { room.status = status; renderLive(); } }
 function renderLive() {
-  $('live').hidden = !LIVE_DB; if (!LIVE_DB) return;
+  $('live').hidden = !LIVE_DB || (!room && app.classList.contains('joining')); if (!LIVE_DB) return;
   $('live-start').hidden = !!room; $('live-on').hidden = !room; if (!room) $('live-link').hidden = true;
-  $('live-hint').textContent = room ? 'Send the link to the group. Everyone opens it, adds their own pin and name, and the meeting place updates for all.' : 'One link for the whole group. Everyone opens it and adds their own pin.';
-  if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? 'Live group' : room.status === 'offline' ? 'Reconnecting…' : 'Connecting…'; }
-  $('clear').textContent = room ? 'Leave group' : 'Start fresh';
-  searchEl.placeholder = room ? 'Add yourself: street, alley, building, address' : 'Add a friend: street, alley, building, address';
+  $('live-hint').textContent = room ? tr('Anyone with the link can add themselves.') + (room.born ? tr(' It works until {t}, then the pins are deleted.', { t: fmtEnd(room.born + TTL) }) : '') : tr('One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.');
+  if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? tr('Live group') : room.status === 'offline' ? tr('Reconnecting…') : tr('Connecting…'); }
+  $('clear').textContent = room ? tr('Leave group') : tr('Start fresh');
+  const joining = app.classList.contains('joining');
+  searchEl.placeholder = joining ? tr('Search a street, alley, building or address') : room ? tr('Add someone else: street, alley, building') : tr('Add a friend: street, alley, building, address');
+  $('hint').textContent = joining ? tr('Or tap the map. A nearby corner is fine if you would rather not mark your exact home.') : tr('Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.');
 }
+let namedOnce = false;
+const pinsLink = /^#[pq]-[bc][ft]-/.test(location.hash);   // a link that carries its own pins has nobody to add first
+let waitFn = null, waitBtn = '', finding = false;   // what was pressed in the join step before the map (or the group) was ready for it
+const ready = () => !!G && (!room || room.shown);
+function whenReady(fn, btn) { if (ready()) fn(); else { waitFn = fn; waitBtn = btn; renderJoin(); } }
+function nowReady() { if (!waitFn || !ready()) return; const fn = waitFn; waitFn = null; waitBtn = ''; renderJoin(); fn(); }
+const afterPaint = fn => requestAnimationFrame(() => setTimeout(fn, 0));   // let what is on screen be drawn before the next heavy step
+function firstRun(ok) {                      // the first search of a visit, one person's roads at a time, so typing in the join step is never held up for long
+  const p = G && state.people.length >= 2 && state.people.find(p => !p.run || p.run.v !== p.v || p.run.mode !== state.mode);
+  if (p) { p.run = { v: p.v, mode: state.mode, r: dijkstra(p.v, G.w[state.mode]) }; setTimeout(() => firstRun(ok), 0); return; }
+  if (ok() && !state.result && !animating) run(true);
+}
+function renderJoin() {                      // the first step for everyone: put yourself on the map. It is there before the map is; what is pressed early waits for the map
+  const solo = !room && (state.example || !state.people.length);
+  let names, mine;
+  if (room && !room.shown) {                 // the group has answered but its pins are not placed yet: go by its own list
+    const pins = room.doc.pins, ids = Object.keys(pins).filter(k => isObj(pins[k])).sort((a, b) => ((+pins[a].t || 0) - (+pins[b].t || 0)) || (a < b ? -1 : 1));
+    names = ids.map(k => cleanName(typeof pins[k].n === 'string' ? pins[k].n : '') || 'Friend'); mine = ids.includes(meIn(room.id));
+  } else { names = solo ? [] : state.people.map(p => p.name); mine = state.people.some(p => p.me); }
+  const on = room ? !mine && names.length < MAX_PEOPLE : solo && (!!G || !pinsLink);
+  app.classList.toggle('joining', on); $('join').hidden = !on; if (!on) return;
+  mark('typeable');
+  const first = names.slice(0, 3), more = names.length - first.length;
+  const list = more > 0 ? tr('{list} and {n} more', { list: first.join(', '), n: more }) : first.length > 1 ? first.slice(0, -1).join(', ') + tr(' and ') + first[first.length - 1] : first[0];
+  $('join-sub').textContent = !room ? tr('Add yourself, then invite the group or add friends yourself. You get the fairest place to meet for all of you.') : !room.ready ? tr('Opening the group…') : !names.length ? tr('You are the first one here. Add yourself, then invite the group.')
+    : tr(names.length > 1 ? '{names} are on the map. The meeting place updates as people join.' : '{names} is on the map. The meeting place updates as people join.', { names: list });
+  const nameEl = $('join-name'); if (!namedOnce) { namedOnce = true; if (!nameEl.value) nameEl.value = cleanName(mem.get()); }
+  const home = G ? homeGet() : homeRaw(), saved = $('join-saved'), here = $('join-here'), wait = tr('Adding you once the map is here…');
+  saved.hidden = !home; if (home) saved.textContent = waitBtn === 'saved' ? wait : tr('Add me from {w}', { w: home.w || tr('my last place') });
+  here.hidden = !(navigator.geolocation && window.isSecureContext); here.classList.toggle('solid', !home); here.textContent = finding ? tr('Finding you…') : waitBtn === 'here' ? wait : tr('Use where I am now');
+  saved.disabled = here.disabled = finding || !!waitFn; $('join-ways').hidden = saved.hidden && here.hidden;
+  const others = room && room.shown ? state.people : [], claim = $('join-claim'); claim.hidden = !others.length; claim.textContent = '';
+  if (others.length) { claim.append(tr('Already on the map?')); for (const p of others) { const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn'; b.textContent = tr('I am {n}', { n: p.name }); b.addEventListener('click', () => { p.me = p.mine = true; changed(true); toast(tr('Got it. {n} is you.', { n: p.name })); }); claim.append(b); } }
+}
+function addSelf(x, y, label) {
+  const keep = state.people; if (state.example) state.people = [];
+  const p = addPerson(x, y, '', label ? { label } : {}); if (!p) { state.people = keep; return; }
+  state.example = false; changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged(); welcome(p);
+}
+$('join-name').maxLength = MAX_NAME;
+$('join-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchEl.focus(); } });
+$('join-saved').addEventListener('click', () => whenReady(() => { const h = homeGet(); if (h && app.classList.contains('joining')) addSelf(h.x, h.y, h.w); }, 'saved'));
+$('join-here').addEventListener('click', () => {   // finding the phone takes a few seconds: it runs while the map is still on its way
+  finding = true; renderJoin();
+  navigator.geolocation.getCurrentPosition(pos => { finding = false; renderJoin(); const la = pos.coords.latitude, lo = pos.coords.longitude; whenReady(() => { if (!app.classList.contains('joining')) return; const xy = toXY(la, lo); addSelf(xy[0], xy[1]); }, 'here'); },
+    () => { finding = false; renderJoin(); toast(tr('Could not get your location. Search for a place or tap the map instead.')); }, { timeout: 12000, maximumAge: 60000 });
+});
 function openStream() {
-  const r = room; if (r.es) r.es.close(); clearTimeout(r.retry);
+  const r = room; if (r.es) r.es.close(); clearTimeout(r.retry); r.asked = false;
   const es = r.es = new EventSource(roomUrl(''));
-  const on = patch => e => { if (room !== r) return; let m; try { m = JSON.parse(e.data); } catch (err) { return; } if (!m || typeof m.path !== 'string') return; applyEvent(r, m.path, m.data, patch); r.ready = true; r.status = 'live'; pullRoom(!patch && m.path === '/'); renderLive(); };
+  const on = patch => e => { if (room !== r) return; let m; try { m = JSON.parse(e.data); } catch (err) { return; } if (!m || typeof m.path !== 'string') return; if (!r.ready && !patch && m.path === '/' && m.data === null) { endRoom(); return; }   // the link points at nothing: the group has ended and been deleted
+    r.refused = 0; applyEvent(r, m.path, m.data, patch); r.ready = true; r.status = 'live';
+    if (G) pullRoom(!patch && m.path === '/'); else { r.early = true; renderPanel(); }   // no map yet: say who is here now, place the pins when it lands
+    renderLive(); if (!r.born && !r.asked) { r.asked = true; readBorn(r, true); } };
   es.addEventListener('put', on(false)); es.addEventListener('patch', on(true));
-  es.addEventListener('cancel', () => { if (room === r) { setLive('offline'); toast('This group link is not available.'); } });
+  es.addEventListener('cancel', () => { if (room === r) endRoom(); });
   es.onopen = () => { if (room === r && r.ready) setLive('live'); };
-  es.onerror = () => { if (room !== r) return; setLive('offline'); if (es.readyState === 2) r.retry = setTimeout(() => { if (room === r) openStream(); }, 4000); };
+  es.onerror = () => { if (room !== r) return; setLive('offline'); if (es.readyState === 2) { es.close(); checkEnded(r); } };
+}
+const fmtEnd = t => { const d = new Date(t), n = new Date(), day = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 864e5);
+  return d.toLocaleTimeString(LANG === 'vi' ? 'vi-VN' : [], { hour: 'numeric', minute: '2-digit' }) + (day === 0 ? tr(' today') : day === 1 ? tr(' tomorrow') : ''); };
+const stamp = id => fetch(bornUrl(id), { method: 'PUT', body: '{".sv":"timestamp"}' }).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); });
+function setBorn(r, v) {                     // remember when the group was started and leave it when its day is up
+  if (room !== r || !(v > 0)) return; r.born = v; clearTimeout(r.endT);
+  r.endT = setTimeout(() => { if (room === r) endRoom(); }, Math.min(2e9, Math.max(1000, v + TTL - Date.now()))); renderLive();
+}
+function readBorn(r, adopt) {                // adopt: a group from before links had an end gets its day from now
+  fetch(bornUrl(r.id)).then(res => res.ok ? res.json() : undefined).then(v => {
+    if (room !== r || v === undefined) return;
+    if (v === null && adopt && !r.adopted) { r.adopted = true; return stamp(r.id).then(() => readBorn(r, false)); }
+    setBorn(r, +v);
+  }).catch(() => {});
+}
+function checkEnded(r) {                     // the stream was closed on us: find out whether the group is over or the connection is just down
+  const again = () => { if (room === r) r.retry = setTimeout(() => { if (room === r) openStream(); }, 4000); };
+  fetch(bornUrl(r.id)).then(res => res.ok ? res.json() : undefined).then(v => {
+    if (room !== r) return; if (v === undefined) return again();
+    if (v === null && !r.adopted) { r.adopted = true; return stamp(r.id).then(() => { if (room === r) openStream(); }, again); }
+    if (++r.refused >= 2 || (v > 0 && Date.now() - v > TTL + 6e4)) return endRoom();   // the database is reachable and still says no
+    again();
+  }).catch(again);
+}
+function endRoom() {
+  if (!room) return; const had = state.people.length; leaveRoom();
+  toast(had ? tr('This group link has ended. Links last a day. Your copy of the pins stays here.') : tr('This group link has ended. Links last a day. Start a new one to plan again.'));
+  if (!G) { ended = true; return; }       // the map is still on its way: the page starts as it would without a link
+  if (!had) { loadExample(); renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); if (state.people.length >= 2) run(true); }
+}
+function sweep() {                           // delete groups whose day is up; the database only lists the ones that have ended
+  if (!LIVE_DB) return; try { if (Date.now() - +(localStorage.getItem('midpoint-sweep') || 0) < 6 * 36e5) return; localStorage.setItem('midpoint-sweep', Date.now()); } catch (e) {}
+  fetch(LIVE_DB + '/idx.json?orderBy=%22%24value%22&endAt=' + (Date.now() - TTL - Math.min(3e5, TTL / 4)) + '&limitToFirst=25').then(res => res.ok ? res.json() : null).then(async old => {
+    for (const id of Object.keys(isObj(old) ? old : {})) { if (!/^[0-9a-z]{16}$/.test(id)) continue; const a = await fetch(LIVE_DB + '/rooms/' + id + '.json', { method: 'DELETE' }); if (a.ok) await fetch(bornUrl(id), { method: 'DELETE' }); }
+  }).catch(() => {});
 }
 function joinRoom(id) {
   leaveRoom(true); cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true;
   state.people = []; state.example = false; state.result = null; room = newRoom(id);
-  renderPanel(); renderPins(); renderMarks(); drawOverlay(0); openStream();
+  renderPanel(); if (G) { renderPins(); renderMarks(); drawOverlay(0); } openStream();
 }
 function leaveRoom(quiet) {
-  const r = room; if (!r) return; if (r.es) r.es.close(); clearTimeout(r.retry); clearTimeout(pushT); room = null;
-  for (const p of state.people) { delete p.rid; p.mine = false; }
+  const r = room; if (!r) return; if (r.es) r.es.close(); clearTimeout(r.retry); clearTimeout(r.endT); clearTimeout(pushT); room = null;
+  for (const p of state.people) { delete p.rid; p.mine = false; p.me = false; }
   if (!quiet) { renderPanel(); writeHash(); }
 }
 function startRoom() {                       // turn what is on screen into a group and hand out its link
@@ -1085,21 +1551,29 @@ function startRoom() {                       // turn what is on screen into a gr
   const r = room = newRoom(rid(16)); r.ready = true; r.shown = true;
   for (const p of state.people) { p.rid = rid(8); const ll = toLatLon(p.x, p.y); r.doc.pins[p.rid] = { la: +ll[0].toFixed(5), lo: +ll[1].toFixed(5), n: cleanName(p.name) || 'Friend', t: Date.now() + state.people.indexOf(p), c: Math.max(0, COLORS.indexOf(p.color)) }; }
   r.doc.s = { m: state.mode === 'bike' ? 'b' : 'c', g: state.goal === 'fair' ? 'f' : 't' };
+  r.q = stamp(r.id).catch(() => {});
   send('PUT', '', r.doc);
-  changed(true);
-  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast('Could not start a live group. Check the connection and try again.'); return; } openStream(); copyInvite(); });
+  changed(true, true);
+  invite(true);                              // the link is known already, so the share sheet opens on this same tap
+  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast(tr('Could not start a live group. Check the connection and try again.')); return; } openStream(); readBorn(r, false); });
 }
 const inviteLink = () => location.origin + location.pathname + location.search + '#g-' + room.id;
-async function copyInvite() {
-  if (!room) return; const b = $('live-copy'), link = inviteLink();
-  try { await navigator.clipboard.writeText(link); b.textContent = 'Link copied'; setTimeout(() => { b.textContent = 'Copy invite link'; }, 1800); }
-  catch (e) { const box = $('live-link'); box.value = link; box.hidden = false; box.focus(); box.select(); }
+const INVITE = () => tr('Add your pin so we can find the fairest place to meet.');   // written in the sender's language
+async function copyInvite(quiet) {           // true when the invite (a line of text and the link) reached the clipboard
+  if (!room) return false; const b = $('live-copy'), link = inviteLink();
+  try { await navigator.clipboard.writeText(INVITE() + ' ' + link); b.textContent = tr('Invite copied'); setTimeout(() => { b.textContent = tr('Invite the group'); }, 1800); return true; }
+  catch (e) { if (!quiet) { const box = $('live-link'); box.value = link; box.hidden = false; box.focus(); box.select(); } return false; }
+}
+async function invite(first) {               // on a phone, hand the invite to the share sheet (Messenger, Zalo…); elsewhere copy it
+  if (!room) return; const r = room;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: 'Hanoi Midpoint', text: INVITE(), url: inviteLink() }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  const ok = await copyInvite(false); if (ok && first === true && room === r) toast(tr('Group started. The invite is copied: paste it in your group chat.'));
 }
 $('live-start').addEventListener('click', startRoom);
-$('live-copy').addEventListener('click', copyInvite);
+$('live-copy').addEventListener('click', () => invite());
 function route(hash) {                       // what a link holds: 'room', 'pins' or nothing usable
   const m = /^#?g-([0-9a-z]{16})$/.exec(hash || '');
-  if (m) { if (!LIVE_DB) { toast('That is a live group link. It only works on the hosted site.'); return ''; } if (!room || room.id !== m[1]) joinRoom(m[1]); return 'room'; }
+  if (m) { if (!LIVE_DB) { toast(tr('That is a live group link. It only works on the hosted site.')); return ''; } if (!room || room.id !== m[1]) joinRoom(m[1]); return 'room'; }
   if (!parseHash(hash)) return '';
   if (room) leaveRoom(true);
   return loadHash(hash) ? 'pins' : '';
@@ -1114,22 +1588,42 @@ new ResizeObserver(resize).observe(stage);
 addEventListener('hashchange', () => { if (!G) return; const h = location.hash.slice(1); if (h === lastHash) return; const how = route(location.hash); if (how) { lastHash = h; clearTimeout(hashT); } if (how === 'pins') { cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (state.people.length >= 2) run(false); else fit(state.people.map(p => [p.x, p.y])); } });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (G && W >= 8) drawBase(); });
 
+function loadBar(f) {
+  const box = document.querySelector('#loading > div'); if (!box) return;
+  let bar = $('loading-bar'); if (!bar) { const track = document.createElement('i'); track.className = 'bar'; bar = document.createElement('i'); bar.id = 'loading-bar'; track.append(bar); box.append(track); }
+  bar.style.width = Math.round(Math.min(1, f) * 100) + '%';
+}
+let placesAsked = false, placesRaw = null;
+function wantPlaces() {                      // place names, house numbers and the street list are almost half the map's size again, so they wait until search or a close look needs them
+  if (placesAsked || IX) return; placesAsked = true;
+  loadData(PLACES_URL).then(p => { placesRaw = p; gotPlaces(); }).catch(err => { console.error(err); setTimeout(() => { placesAsked = false; }, 8000); });
+}
+function gotPlaces() {                       // they can arrive before the map does (someone went straight to the search box); they are of use once both are here
+  if (!placesRaw || !G || IX) return;
+  IX = decodePlaces(placesRaw); placesRaw = null; G.streets = IX.streets; G.skey = null; if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender();
+}
 function start() {
-  const l = $('loading'); l.hidden = false;
-  fetch(DATA_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(d => {
-    const t0 = performance.now(); G = decode(d); perf.decode = performance.now() - t0; l.hidden = true; resize();
-    const how = route(location.hash); if (!how) loadExample();
-    renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); fullRender();
-    if (how !== 'room' && state.people.length >= 2) run(true);
-    fetch(PLACES_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(p => { IX = decodePlaces(p); if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender(); }).catch(err => { console.error(err); });
+  const l = $('loading'); l.hidden = false; EARLY.onPart = loadBar; if (EARLY.part) loadBar(EARLY.part);
+  (EARLY.map || (EARLY.map = EARLY.load())).then(core => {
+    try { performance.mark('mp-data', { startTime: EARLY.dataAt }); } catch (e) {}
+    G = finishMap(core); perf.decode = core.ms; l.hidden = true; resize();
+    const how = ended ? '' : route(location.hash); if (!how) loadExample();
+    renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); fullRender(); mark('map');
+    if (room && room.early) { room.early = false; pullRoom(true); }   // the group answered while the map was downloading
+    else if (how !== 'room' && state.people.length >= 2) afterPaint(() => firstRun(() => true));   // the map is drawn first, then the search for the place
+    gotPlaces(); nowReady();
+    setTimeout(sweep, 6000);
+    if (document.activeElement === searchEl || searchEl.value.trim().length >= 2) wantPlaces();
+    try { caches.keys().then(ks => { for (const k of ks) if (k.startsWith('midpoint-data-') && k !== KEEP) caches.delete(k); }).catch(() => {}); } catch (e) {}
   }).catch(err => {
-    console.error(err); if (G) return;
-    const d = document.createElement('div'), b = document.createElement('b'), again = document.createElement('button'); b.textContent = 'The Hanoi map did not load'; again.type = 'button'; again.className = 'btn'; again.textContent = 'Try again';
-    again.addEventListener('click', () => { l.textContent = ''; const w = document.createElement('div'), t = document.createElement('b'); t.textContent = 'Loading Hanoi\'s roads'; w.append(t); l.append(w); start(); });
-    d.append(b, 'Check the connection, then try again.', document.createElement('br'), again); l.textContent = ''; l.append(d);
+    console.error(err); if (G) return; EARLY.map = null;
+    const d = document.createElement('div'), b = document.createElement('b'), again = document.createElement('button'); b.textContent = tr('The Hanoi map did not load'); again.type = 'button'; again.className = 'btn'; again.textContent = tr('Try again');
+    again.addEventListener('click', () => { l.textContent = ''; const w = document.createElement('div'), t = document.createElement('b'); t.textContent = tr('Loading Hanoi\'s roads'); w.append(t); l.append(w); start(); });
+    d.append(b, tr('Check the connection, then try again.'), document.createElement('br'), again); l.textContent = ''; l.append(d);
   });
 }
+if (LIVE_DB && /^#g-[0-9a-z]{16}$/.test(location.hash)) joinRoom(location.hash.slice(3)); else renderPanel();   // a group link reaches for its group now, not after the map
 start();
-window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, startRoom, leaveRoom, pushRoom, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
+window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, setLang, get lang() { return LANG; }, VI, renderJoin, addSelf, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; }, wantPlaces, loadData, loadBar, nums, choose, retarget };
 })();
 </script>

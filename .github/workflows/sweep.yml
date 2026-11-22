@@ -1,0 +1,26 @@
+# Deletes live groups that ended (older than a day) even when nobody opens the site.
+# The database rules only allow listing and deleting groups that have already ended, so this needs no password.
+name: Delete ended groups
+on:
+  schedule:
+    - cron: '17 19 * * *' # 02:17 in Hanoi
+  workflow_dispatch:
+permissions: {}
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete groups older than a day
+        run: |
+          db=https://caiduyen-default-rtdb.asia-southeast1.firebasedatabase.app
+          cutoff=$(( ($(date +%s) - 86400 - 300) * 1000 ))
+          ids=$(curl -fsS "$db/idx.json?orderBy=%22%24value%22&endAt=$cutoff&limitToFirst=500" | jq -r '(. // {}) | keys[]')
+          n=0
+          for id in $ids; do
+            case "$id" in *[!0-9a-z]*) continue ;; esac
+            [ ${#id} -eq 16 ] || continue
+            curl -fsS -X DELETE "$db/rooms/$id.json" > /dev/null
+            curl -fsS -X DELETE "$db/idx/$id.json" > /dev/null
+            n=$((n + 1))
+          done
+          echo "Deleted $n ended groups"

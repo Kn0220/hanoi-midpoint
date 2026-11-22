@@ -38,7 +38,7 @@ This site is built with its database address set, so live groups are on. To poin
 
 ## Data use
 
-A first visit downloads about 1.1 MB: the page, the fonts and the road map. Place names, house numbers and the street list (0.44 MB) are downloaded the first time someone uses search or zooms in close, and not at all on a phone set to save data unless they search.
+A first visit downloads about 1.2 MB: the road map (1.06 MB), the fonts and the page. Place names, house numbers and the street list (0.44 MB) are downloaded the first time someone uses search or zooms in close, and not at all on a phone set to save data unless they search.
 
 The page keeps both data files in the browser's own store, so later visits download no map data, also after the site is updated. That only holds while the file names stay the same: new data must get a new file name (`hanoi-v4.json`) and a new store name (`KEEP` in `src/index.html`), or people keep the old copy.
 

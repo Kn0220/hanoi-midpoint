@@ -211,6 +211,8 @@ button { cursor: pointer; }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 24px; z-index: 8; background: var(--map-ground); }
 .loading b { display: block; color: var(--ink); font-family: var(--sign-font); font-size: 24px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; margin-bottom: 4px; }
 .loading .btn { margin-top: 12px; pointer-events: auto; }
+.loading .bar { display: block; width: 148px; height: 3px; margin: 16px auto 0; border-radius: 2px; background: var(--line); overflow: hidden; }
+.loading .bar i { display: block; width: 0; height: 100%; background: var(--sign); transition: width .25s linear; }
 .toast { position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); border-radius: 8px; padding: 8px 9px 8px 13px; font-size: 12.5px; font-weight: 500; width: max-content; max-width: calc(100% - 116px); display: flex; align-items: center; gap: 10px; z-index: 9; box-shadow: 0 6px 18px rgba(10,16,30,.28); }
 .toast button { border: 0; background: color-mix(in srgb, var(--surface) 18%, transparent); color: inherit; border-radius: 5px; padding: 3px 9px; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
 .toast span { padding-right: 4px; }
@@ -332,7 +334,10 @@ button { cursor: pointer; }
 <script>
 (() => {
 'use strict';
-const DATA_URL = 'hanoi-v2.json', PLACES_URL = 'hanoi-v2-places.json';   // the name changes whenever the data format does, so an old cached copy is never read
+const DATA_URL = 'hanoi-v3.json', PLACES_URL = 'hanoi-v3-places.json';   // the name changes whenever the data does, so a kept copy is never out of date
+const PACKED = '.gz';                  // the hosted site sets this to '.gz': copies squeezed harder than the host squeezes them on the way out
+const KEEP = 'midpoint-data-3';     // the device's own store for those files, so a small update to the page does not download the map again
+const LEAN = !!(navigator.connection && navigator.connection.saveData);   // the phone asked sites to go easy on data
 const LIVE_DB = 'https://caiduyen-default-rtdb.asia-southeast1.firebasedatabase.app';                 // address of the shared database for live groups; empty where the page cannot reach one
 const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E', '#A0623B', '#4C5FD5', '#B03A8C', '#5F7285'];
 const MAX_PEOPLE = 12, MAX_NAME = 18, SNAP_LIMIT = 1500;
@@ -346,7 +351,7 @@ const bctx = base.getContext('2d'), octx = over.getContext('2d'), gctx = glow.ge
 const narrow = matchMedia('(max-width: 760px)');
 
 let G = null, IX = null;            // decoded city, and the place index that loads after it
-const state = { mode: 'bike', goal: 'fair', kind: 0, people: [], result: null, example: false, nextId: 1 };
+const state = { mode: 'bike', goal: 'fair', kind: 0, pick: null, people: [], result: null, example: false, nextId: 1 };   // pick: the place someone chose over the top one (-1 = the exact midpoint)
 const view = { cx: 0, cy: 0, s: 0.03 }, drawn = { cx: 0, cy: 0, s: 0.03 };
 let W = 0, H = 0, DPR = 1, css = {};
 const perf = { decode: 0, solve: 0, base: 0 };
@@ -355,6 +360,7 @@ const perf = { decode: 0, solve: 0, base: 0 };
 const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 /* ------------------------------------------------------------ language: English is written in the page; Vietnamese is looked up by the English sentence */
 const VI = {
+  'The meeting place is now {s}': 'Điểm hẹn bây giờ là {s}',
   'Plan': 'Kế hoạch',
   'How everyone travels': 'Mọi người đi bằng gì',
   'What counts as best': 'Thế nào là tốt nhất',
@@ -549,15 +555,23 @@ function readTheme() {
 }
 
 /* ------------------------------------------------------------ decode */
+const B64 = new Uint8Array(128); for (let i = 0; i < 64; i++) B64['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'.charCodeAt(i)] = i;
+function nums(s) {                           // whole numbers packed as text: five bits a character, low bits first, sign in the lowest bit
+  const out = new Int32Array(s.length); let n = 0, u = 0, sh = 0;
+  for (let i = 0; i < s.length; i++) { const c = B64[s.charCodeAt(i)]; u |= (c & 31) << sh; if (c & 32) sh += 5; else { out[n++] = (u >>> 1) ^ -(u & 1); u = 0; sh = 0; } }
+  return out.subarray(0, n);
+}
 function decode(d) {
-  if (d.v !== 2) throw new Error('unexpected map data version');
+  if (d.v !== 3) throw new Error('unexpected map data version');
+  for (const k of ['vx', 'vy', 'ea', 'eb', 'en', 'eg', 'px', 'py', 'pv', 'pc']) d[k] = nums(d[k]);
   const MY = 111320 / d.q, MX = MY * Math.cos(d.origin[0] * Math.PI / 180);
   const V = d.vx.length, E = d.ea.length, NC = d.ec.length;
   const px = new Float32Array(V), py = new Float32Array(V), vflag = new Uint8Array(V);
   const qx = new Int32Array(V), qy = new Int32Array(V);
   for (let i = 0, x = 0, y = 0; i < V; i++) { x += d.vx[i]; y += d.vy[i]; qx[i] = x; qy[i] = y; px[i] = x * MX; py[i] = -y * MY; vflag[i] = d.vf.charCodeAt(i) - 48; }
-  const ea = new Int32Array(E), eb = new Int32Array(E), ecls = new Uint8Array(E), eflag = new Uint8Array(E), ename = Int32Array.from(d.en), elen = new Float32Array(E);
+  const ea = new Int32Array(E), eb = new Int32Array(E), ecls = new Uint8Array(E), eflag = new Uint8Array(E), ename = new Int32Array(E), elen = new Float32Array(E);
   for (let i = 0, a = 0; i < E; i++) { a += d.ea[i]; ea[i] = a; eb[i] = a + d.eb[i]; eflag[i] = d.ef.charCodeAt(i) - 48; }
+  for (let i = 0, seen = 0; i < E; i++) { const c = d.en[i]; ename[i] = c === 0 ? 0 : c === 1 ? ++seen : seen - (c - 2); }   // 0 no name, 1 a name not used before, else how many names back
   for (let c = 0, i = 0; c < NC; c++) for (let k = 0; k < d.ec[c]; k++) ecls[i++] = c;
   // geometry: every edge as a full polyline in metres
   let total = 0; for (let i = 0, k = 0; i < E; i++) { const n = d.eg[k]; total += n + 2; k += 1 + n * 2; }
@@ -602,31 +616,35 @@ function decode(d) {
   // venues, areas, map shapes
   const P = d.pn.length, pox = new Float32Array(P), poy = new Float32Array(P), pk = new Uint8Array(P);
   for (let i = 0, x = 0, y = 0; i < P; i++) { x += d.px[i]; y += d.py[i]; pox[i] = x * MX; poy[i] = -y * MY; pk[i] = d.pk.charCodeAt(i) - 48; }
+  const pvBike = new Int32Array(P), pvCar = new Int32Array(P); for (let i = 0, v = 0; i < P; i++) { v += d.pv[i]; pvBike[i] = v; pvCar[i] = v + d.pc[i]; }
   const areas = d.areas.map(p => ({ name: p[0], x: p[1] * MX, y: -p[2] * MY, rank: p[3] }));
-  const unflat = a => { const n = a.length / 2, xs = new Float32Array(n), ys = new Float32Array(n); for (let i = 0, x = 0, y = 0; i < n; i++) { x += a[2 * i]; y += a[2 * i + 1]; xs[i] = x * MX; ys[i] = -y * MY; } return { xs, ys }; };
+  const unflat = s => { const a = nums(s), n = a.length / 2, xs = new Float32Array(n), ys = new Float32Array(n); for (let i = 0, x = 0, y = 0; i < n; i++) { x += a[2 * i]; y += a[2 * i + 1]; xs[i] = x * MX; ys[i] = -y * MY; } return { xs, ys }; };
   const shape = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (!u.xs.length) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); } return path; };
   const closed = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (u.xs.length < 3) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); path.closePath(); } return path; };
-  const streets = d.sn.map((n, i) => ({ name: d.names[n], ctx: d.sc[i] ? d.names[d.sc[i]] : '', x: d.sx[i] * MX, y: -d.sy[i] * MY }));
   const lab = a => a.map(w => ({ name: w[0], x: w[1] * MX, y: -w[2] * MY, w: w[3] || 0, alt: w[4] || '' }));
   return { MX, MY, q: d.q, origin: d.origin, V, E, NC, px, py, vflag, ea, eb, ecls, eflag, ename, elen, goff, gx, gy, ex0, ey0, ex1, ey1,
     off: deg, arcTo, arcEdge, w: { bike: wBike, car: wCar }, bounds: [bx0, by0, bx1, by1], CELL, gw, gh, vCount, vCell, eCount, eCell,
-    names: d.names, P, pox, poy, pk, pn: d.pn, pvBike: Int32Array.from(d.pv), pvCar: Int32Array.from(d.pc), pkey: null, areas, akey: null, streets, skey: null, wkey: null, gkey: null,
+    names: d.names, P, pox, poy, pk, pn: d.pn, pvBike, pvCar, pkey: null, areas, akey: null, streets: [], skey: null, wkey: null, gkey: null,
     water: closed(d.water), rivers: shape(d.rivers.filter((r, i) => d.rk[i] === '1')), canals: shape(d.rivers.filter((r, i) => d.rk[i] !== '1')),
     green: closed(d.green), rail: shape(d.rail), runway: shape(d.runway), wlabels: lab(d.wlabels), glabels: lab(d.glabels),
     stamp: new Int32Array(E), stampN: 0, where: new Map() };
 }
 function decodePlaces(d) {
+  if (d.v !== 3) throw new Error('unexpected place data version');
   const { MX, MY, CELL, gw, gh, bounds } = G, n0 = d.n.length, n1 = d.ah.length, N = n0 + n1;
+  const dx = nums(d.x), dy = nums(d.y), ti = nums(d.ti), ai = nums(d.ai), ax = nums(d.ax), ay = nums(d.ay), sn = nums(d.sn), sx = nums(d.sx), sy = nums(d.sy), sc = nums(d.sc);
   const x = new Float32Array(N), y = new Float32Array(N), k = new Uint8Array(N), name = new Array(N);
-  for (let i = 0, qx = 0, qy = 0; i < n0; i++) { qx += d.x[i]; qy += d.y[i]; x[i] = qx * MX; y[i] = -qy * MY; k[i] = d.k.charCodeAt(i) - 48; name[i] = d.n[i]; }
-  for (let i = 0, qx = 0, qy = 0, s = 0; i < n1; i++) { qx += d.ax[i]; qy += d.ay[i]; s += d.ai[i]; const j = n0 + i; x[j] = qx * MX; y[j] = -qy * MY; k[j] = 7; name[j] = d.ah[i] + ' ' + d.as[s]; }
+  for (let i = 0, qx = 0, qy = 0; i < n0; i++) { qx += dx[i]; qy += dy[i]; x[i] = qx * MX; y[i] = -qy * MY; k[i] = d.k.charCodeAt(i) - 48; name[i] = d.n[i]; }
+  for (let i = 0, qx = 0, qy = 0, s = 0; i < n1; i++) { qx += ax[i]; qy += ay[i]; s += ai[i]; const j = n0 + i; x[j] = qx * MX; y[j] = -qy * MY; k[j] = 7; name[j] = d.ah[i] + ' ' + d.as[s]; }
   // grid over the named places (not the addresses) for map labels
   const cellOf = i => Math.min(gw - 1, Math.max(0, Math.floor((x[i] - bounds[0]) / CELL))) + gw * Math.min(gh - 1, Math.max(0, Math.floor((y[i] - bounds[1]) / CELL)));
   const count = new Int32Array(gw * gh + 1); for (let i = 0; i < n0; i++) count[cellOf(i) + 1]++;
   for (let i = 0; i < gw * gh; i++) count[i + 1] += count[i];
   const cell = new Int32Array(n0), f = count.slice(0, gw * gh); for (let i = 0; i < n0; i++) cell[f[cellOf(i)]++] = i;
-  const alt = new Array(N); for (let i = 0, j = 0; i < d.ti.length; i++) { j += d.ti[i]; alt[j] = d.tt[i]; }
-  return { N, n0, x, y, k, name, alt, key: null, altKey: null, count, cell };
+  const alt = new Array(N); for (let i = 0, j = 0; i < ti.length; i++) { j += ti[i]; alt[j] = d.tt[i]; }
+  const streets = new Array(sn.length);     // every street and alley by name, for search only
+  for (let i = 0, n = 0; i < sn.length; i++) { n += sn[i]; streets[i] = { name: G.names[n], ctx: sc[i] ? G.names[sc[i]] : '', x: sx[i] * MX, y: -sy[i] * MY }; }
+  return { N, n0, x, y, k, name, alt, key: null, altKey: null, count, cell, streets };
 }
 const toXY = (lat, lon) => [(lon - G.origin[1]) * G.q * G.MX, -(lat - G.origin[0]) * G.q * G.MY];
 const toLatLon = (x, y) => [G.origin[0] - y / (G.q * G.MY), G.origin[1] + x / (G.q * G.MX)];
@@ -728,6 +746,14 @@ function rankVenues(res) {
   for (const i of list) { if (out.length === 6) break; if (out.some(o => G.pkey[o] === G.pkey[i] && Math.hypot(G.pox[o] - G.pox[i], G.poy[o] - G.poy[i]) < 150)) continue; out.push(i); }
   res.venues = out;
 }
+const pickTarget = r => state.pick === -1 ? { kind: 'exact' } : state.pick !== null && r.venues.includes(state.pick) ? { kind: 'venue', i: state.pick } : r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' };
+const syncKind = () => document.querySelectorAll('[data-kind]').forEach(o => o.setAttribute('aria-pressed', +o.dataset.kind === state.kind));
+function choose(t) { state.pick = t.kind === 'venue' ? t.i : -1; setTarget(t); pushRoom(); }   // someone tapped a place: in a live group everyone's star moves there
+function retarget(told) {                    // the kind of place or the pick changed; the travel times did not
+  const r = state.result; if (!r || !r.target) return;   // still drawing the search: finish() picks it up
+  const was = r.target.kind === 'venue' ? r.target.i : -1; rankVenues(r); const t = pickTarget(r); setTarget(t);
+  if (told && state.pick !== null && (t.kind === 'venue' ? t.i : -1) !== was) toast(tr('The meeting place is now {s}', { s: t.kind === 'venue' ? G.pn[t.i] : tr('Exact midpoint') }));
+}
 function setTarget(t) {                     // t: {kind:'venue', i} or {kind:'exact'}
   const res = state.result; if (!res) return;
   const v = t.kind === 'venue' ? venueV(t.i) : res.best;
@@ -750,7 +776,8 @@ function addPerson(x, y, name, opts) {       // returns the person, or null with
   state.people.push(p); return p;
 }
 let autoT = 0, live = false;             // live: an answer was showing, so keep one showing
-function changed(keepView) {                 // people, mode or goal changed
+function changed(keepView, keepPick) {       // people, mode or goal changed
+  if (!keepPick) state.pick = null;         // a pick belongs to the answer it was made on
   const had = !!state.result || live || !!(room && room.ready); state.result = null; cancelAnimationFrame(animRaf); clearTimeout(autoT); animating = false; clearGlow(); $('chip').hidden = true; $('plan').hidden = true;
   renderPanel(); renderPins(); renderMarks(); drawOverlay(0); writeHash(); pushRoom();
   live = had && state.people.length >= 2;
@@ -811,9 +838,9 @@ function renderPanel() {
     const vt = document.createElement('span'); vt.className = 'vt'; const m = document.createElement('b'); m.textContent = fmtMin(res.worst[v]); vt.append(tr('longest') + ' ', m);
     b.append(n, vn, vt); b.addEventListener('click', onClick); li.append(b); vl.append(li);
   };
-  res.venues.forEach((i, k) => row(String(k + 1), G.pn[i], describe(venueV(i)), venueV(i), t.kind === 'venue' && t.i === i, () => setTarget({ kind: 'venue', i })));
+  res.venues.forEach((i, k) => row(String(k + 1), G.pn[i], describe(venueV(i)), venueV(i), t.kind === 'venue' && t.i === i, () => choose({ kind: 'venue', i })));
   if (!res.venues.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = tr('OpenStreetMap has no place of this kind near the midpoint. Try another kind.'); vl.append(li); }
-  row('◎', tr('Exact midpoint'), tr('Near {s}', { s: describe(res.best) }), res.best, t.kind === 'exact', () => setTarget({ kind: 'exact' }));
+  row('◎', tr('Exact midpoint'), tr('Near {s}', { s: describe(res.best) }), res.best, t.kind === 'exact', () => choose({ kind: 'exact' }));
   const ty = $('tally'); ty.textContent = '';
   if (res.checked > 0) ty.append(tr('Searching from everyone at once checked '), Object.assign(document.createElement('b'), { textContent: nf(res.checked) }), tr(' road segments before the searches met. Mapping the whole city for each friend in turn would check '), Object.assign(document.createElement('b'), { textContent: nf(res.oneByOne) }), '.');
   else ty.append(tr('Everyone starts from the same spot, so there was nothing to search.'));
@@ -941,6 +968,7 @@ function drawLabels(groups) {
       if (!free(x - bw / 2, y - bh / 2, bw, bh)) continue;
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.strokeStyle = css.halo; ctx.lineWidth = 3; ctx.strokeText(name, 0, 0); ctx.fillStyle = minor ? css.soft : css.label; ctx.fillText(name, 0, 0); ctx.restore(); count++; }
   }
+  if (!IX && s >= 0.7 && !LEAN) wantPlaces();   // someone zoomed in to look around: now the names are worth their download
   if (IX && s >= 0.7) {                  // named buildings and places, close in
     const [x0, y0, x1, y1] = drawnRect(), { CELL, gw, gh, bounds } = G, all = s >= 1.5;
     const cx0 = Math.max(0, Math.floor((x0 - bounds[0]) / CELL)), cx1 = Math.min(gw - 1, Math.floor((x1 - bounds[0]) / CELL)), cy0 = Math.max(0, Math.floor((y0 - bounds[1]) / CELL)), cy1 = Math.min(gh - 1, Math.floor((y1 - bounds[1]) / CELL));
@@ -1005,7 +1033,7 @@ function animate() {
   animRaf = requestAnimationFrame(step);
   setTimeout(() => step(performance.now()), T + 250);      // a tab in the background gets no animation frames; still finish with the answer
 }
-function finish() { const r = state.result; rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); writeHash(); if (userRun) { userRun = false; $('scroll').scrollTo({ top: 0, behavior: 'smooth' }); } }
+function finish() { const r = state.result; rankVenues(r); setTarget(pickTarget(r)); writeHash(); if (userRun) { userRun = false; $('scroll').scrollTo({ top: 0, behavior: 'smooth' }); } }
 function run(animated, keepView) {
   clearTimeout(autoT); live = false;
   if (!G || state.people.length < 2) return;
@@ -1031,8 +1059,8 @@ function renderMarks() {
   for (const el of [...pinsEl.querySelectorAll('.mark')]) el.remove();
   const res = state.result; if (!res || !res.target) { placeDom(); return; }
   const mk = (label, x, y, on, cls, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'mark' + (on ? ' on' : '') + cls; b.textContent = on ? '★' : label; b.dataset.x = x; b.dataset.y = y; b.title = title; b.setAttribute('aria-label', title + (on ? tr(' (meeting place)') : '')); b.addEventListener('click', fn); b.addEventListener('pointerdown', e => e.stopPropagation()); pinsEl.append(b); };
-  res.venues.forEach((i, k) => mk(String(k + 1), G.pox[i], G.poy[i], res.target.kind === 'venue' && res.target.i === i, '', G.pn[i], () => setTarget({ kind: 'venue', i })));
-  mk('', G.px[res.best], G.py[res.best], res.target.kind === 'exact', ' exact', tr('Exact midpoint'), () => setTarget({ kind: 'exact' }));
+  res.venues.forEach((i, k) => mk(String(k + 1), G.pox[i], G.poy[i], res.target.kind === 'venue' && res.target.i === i, '', G.pn[i], () => choose({ kind: 'venue', i })));
+  mk('', G.px[res.best], G.py[res.best], res.target.kind === 'exact', ' exact', tr('Exact midpoint'), () => choose({ kind: 'exact' }));
   placeDom();
 }
 function placeDom() {
@@ -1157,7 +1185,7 @@ $('zfit').addEventListener('click', () => { if (G) fit(state.people.map(p => [p.
 function seg(ids, key, values, after) { ids.forEach((id, i) => $(id).addEventListener('click', () => { if (state[key] === values[i]) return; state[key] = values[i]; ids.forEach((j, k) => $(j).setAttribute('aria-pressed', k === i)); after(); })); }
 seg(['mode-bike', 'mode-car'], 'mode', ['bike', 'car'], () => { if (!G) return; resnapAll(); changed(true); });
 seg(['goal-fair', 'goal-total'], 'goal', ['fair', 'total'], () => { if (!G) return; changed(true); });
-document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { state.kind = +b.dataset.kind; document.querySelectorAll('[data-kind]').forEach(o => o.setAttribute('aria-pressed', o === b)); const r = state.result; if (r && r.target) { rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); } }));
+document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { state.kind = +b.dataset.kind; state.pick = null; syncKind(); retarget(); pushRoom(); }));
 $('go').addEventListener('click', () => { userRun = true; run(true); });
 $('clear').addEventListener('click', () => { if (room) { leaveRoom(); toast(tr('You left the live group. Your copy of the pins stays here.')); return; } const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast(tr('Cleared'), tr('Undo'), () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
 $('copy').addEventListener('click', async () => { const b = $('copy'), text = planText(); try { await navigator.clipboard.writeText(text); b.textContent = tr('Copied'); } catch (e) { const ta = $('plan'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); return; } setTimeout(() => { b.textContent = tr('Copy plan for the group chat'); }, 1600); });
@@ -1248,8 +1276,8 @@ function pickHit(i) {
   else if (narrow.matches) { searchEl.blur(); toast(tr('{n} added. Hold the pin, then drag to fine-tune.', { n: p.name })); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
 }
 let searchT = 0;
-searchEl.addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });
-searchEl.addEventListener('focus', () => { if (narrow.matches) app.classList.add('searching'); const sc = $('scroll'); sc.scrollTo({ top: searchEl.closest('.search').offsetTop - sc.offsetTop - 8, behavior: 'smooth' }); if (searchEl.value.trim().length >= 2 && hitsEl.hidden) doSearch(); });
+searchEl.addEventListener('input', () => { wantPlaces(); clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });
+searchEl.addEventListener('focus', () => { wantPlaces(); if (narrow.matches) app.classList.add('searching'); const sc = $('scroll'); sc.scrollTo({ top: searchEl.closest('.search').offsetTop - sc.offsetTop - 8, behavior: 'smooth' }); if (searchEl.value.trim().length >= 2 && hitsEl.hidden) doSearch(); });
 searchEl.addEventListener('blur', () => { setTimeout(() => { if (!document.activeElement || !document.activeElement.closest('.search')) { app.classList.remove('searching'); hitsEl.hidden = true; } }, 220); });
 searchEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchT); if (!hits.length) doSearch(); pickHit(hitOn); } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!hits.length) return; hitOn = (hitOn + (e.key === 'ArrowDown' ? 1 : hits.length - 1)) % hits.length; [...hitsEl.querySelectorAll('button')].forEach((b, i) => { b.classList.toggle('on', i === hitOn); if (i === hitOn) b.scrollIntoView({ block: 'nearest' }); }); } else if (e.key === 'Escape') { hitsEl.hidden = true; searchEl.blur(); } });
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.search')) hitsEl.hidden = true; });
@@ -1300,10 +1328,10 @@ const roomUrl = path => LIVE_DB + '/rooms/' + room.id + (path ? '/' + path : '')
 const bornUrl = id => LIVE_DB + '/idx/' + id + '.json';   // idx/<group> holds the time the group was started, set by the database's own clock
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v), near = (a, b) => Math.abs(a - b) < 2e-6;
 const newRoom = id => ({ id, doc: { s: {}, pins: {} }, es: null, ready: false, shown: false, applying: false, hidden: new Set(), q: Promise.resolve(), status: 'connecting', failed: false, retry: 0, born: 0, endT: 0, refused: 0, adopted: false });
-function send(method, path, body) {
+function send(method, path, body, quiet) {   // quiet: an extra the database may refuse without it counting as a failed save
   const r = room, url = roomUrl(path);
   r.q = r.q.then(() => fetch(url, { method, body: body === undefined ? undefined : JSON.stringify(body) })).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); })
-    .catch(err => { console.error(err); r.failed = true; if (room === r && r.shown) toast(tr('Could not save to the group. Check the connection.')); });
+    .catch(err => { if (quiet) { console.warn(err); return; } console.error(err); r.failed = true; if (room === r && r.shown) toast(tr('Could not save to the group. Check the connection.')); });
 }
 function pushSoon() { clearTimeout(pushT); if (room) pushT = setTimeout(pushRoom, 700); }
 function pushRoom() {                        // send whatever differs between this screen and the group's copy
@@ -1318,7 +1346,10 @@ function pushRoom() {                        // send whatever differs between th
   }
   for (const k of Object.keys(pins)) if (!seen.has(k) && !r.hidden.has(k)) { delete pins[k]; send('DELETE', 'pins/' + k); }
   const m = state.mode === 'bike' ? 'b' : 'c', g = state.goal === 'fair' ? 'f' : 't';
-  if (r.doc.s.m !== m || r.doc.s.g !== g) { r.doc.s = { m, g }; send('PUT', 's', r.doc.s); }
+  const s = r.doc.s; if (s.m !== m || s.g !== g) { s.m = m; s.g = g; send('PATCH', 's', { m, g }); }
+  const k = state.kind || null, pk = state.pick;   // the kind of place and the pick travel with the group too
+  if ((s.k || null) !== k) { if (k) s.k = k; else delete s.k; send(k ? 'PUT' : 'DELETE', 's/k', k || undefined, true); }
+  if ((Number.isInteger(s.p) ? s.p : null) !== pk) { if (pk !== null) s.p = pk; else delete s.p; send(pk !== null ? 'PUT' : 'DELETE', 's/p', pk !== null ? pk : undefined, true); }
 }
 function applyEvent(r, path, data, patch) {  // one change from the database, applied to our copy of the group
   const keys = path.split('/').filter(Boolean); if (keys.some(k => k === '__proto__' || k === 'constructor' || k === 'prototype')) return;
@@ -1332,6 +1363,8 @@ function pullRoom(full) {                    // make this screen match the group
   let moved = false, renamed = false, joined = '';
   const s = r.doc.s, mode = s.m === 'c' ? 'car' : s.m === 'b' ? 'bike' : state.mode, goal = s.g === 't' ? 'total' : s.g === 'f' ? 'fair' : state.goal;
   if (mode !== state.mode || goal !== state.goal) { const re = mode !== state.mode; state.mode = mode; state.goal = goal; syncSegs(); if (re) resnapAll(); moved = true; }
+  const kind = s.k === 1 || s.k === 2 ? s.k : 0, pick = Number.isInteger(s.p) && s.p >= -1 && s.p < G.P ? s.p : null, repick = kind !== state.kind || pick !== state.pick;
+  if (repick) { state.kind = kind; state.pick = pick; syncKind(); }
   const ok = k => /^[0-9a-z]{1,20}$/.test(k) && isObj(pins[k]) && Number.isFinite(pins[k].la) && Number.isFinite(pins[k].lo);
   const ids = Object.keys(pins).filter(k => ok(k) || (r.hidden.add(k), false)).sort((a, b) => ((+pins[a].t || 0) - (+pins[b].t || 0)) || (a < b ? -1 : 1));
   const have = new Map(state.people.filter(p => p.rid).map(p => [p.rid, p])), before = state.people.length, next = []; state.people = next;
@@ -1349,8 +1382,8 @@ function pullRoom(full) {                    // make this screen match the group
   if (next.length !== before) moved = true;
   r.applying = false;
   if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.some(p => p.me) ? next.map(p => [p.x, p.y]) : []); pushRoom(); }   // someone still to add themselves gets the whole city, not a close-up of the first pin
-  else if (moved || resend) changed(!(joined && !pinDrag && !pinHold && !app.classList.contains('searching')));
-  else if (renamed) { renderPanel(); renderPins(); }
+  else if (moved || resend) changed(!(joined && !pinDrag && !pinHold && !app.classList.contains('searching')), true);
+  else { if (renamed) { renderPanel(); renderPins(); } if (repick) retarget(true); }
   if (joined) toast(tr('{n} is on the map', { n: joined }));
 }
 function setLive(status) { if (room) { room.status = status; renderLive(); } }
@@ -1455,7 +1488,7 @@ function startRoom() {                       // turn what is on screen into a gr
   r.doc.s = { m: state.mode === 'bike' ? 'b' : 'c', g: state.goal === 'fair' ? 'f' : 't' };
   r.q = stamp(r.id).catch(() => {});
   send('PUT', '', r.doc);
-  changed(true);
+  changed(true, true);
   invite(true);                              // the link is known already, so the share sheet opens on this same tap
   r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast(tr('Could not start a live group. Check the connection and try again.')); return; } openStream(); readBorn(r, false); });
 }
@@ -1490,15 +1523,54 @@ new ResizeObserver(resize).observe(stage);
 addEventListener('hashchange', () => { if (!G) return; const h = location.hash.slice(1); if (h === lastHash) return; const how = route(location.hash); if (how) { lastHash = h; clearTimeout(hashT); } if (how === 'pins') { cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (state.people.length >= 2) run(false); else fit(state.people.map(p => [p.x, p.y])); } });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (G && W >= 8) drawBase(); });
 
+async function readBody(res, onPart) {       // the whole reply, reporting how far along it is when its size is known
+  const total = res.headers.get('content-encoding') ? 0 : +res.headers.get('content-length') || 0;
+  if (!res.body || !res.body.getReader) return new Uint8Array(await res.arrayBuffer());
+  const rd = res.body.getReader(), parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; if (onPart && total) onPart(got / total); }
+  const all = new Uint8Array(got); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; }
+  return all;
+}
+async function loadData(url, onPart) {      // a data file: from this device's kept copy when there is one, else downloaded (the squeezed copy first) and kept
+  let keep = null, res = null;
+  try { keep = await caches.open(KEEP); res = await keep.match(url) || null; } catch (e) { keep = null; }
+  const kept = !!res;
+  try {
+    if (!res && PACKED && typeof DecompressionStream === 'function') { try { res = await fetch(url + PACKED); if (!res.ok) res = null; } catch (e) { res = null; } }
+    if (!res) { res = await fetch(url); if (!res.ok) throw new Error('HTTP ' + res.status); }
+    const copy = keep && !kept ? res.clone() : null;
+    let bytes = await readBody(res, kept ? null : onPart);
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const d = JSON.parse(new TextDecoder().decode(bytes));
+    if (copy) keep.put(url, copy).catch(() => {});
+    return d;
+  } catch (err) {
+    if (!kept) throw err;
+    try { await keep.delete(url); } catch (e) {}
+    return loadData(url, onPart);           // the kept copy could not be read: download it again
+  }
+}
+function loadBar(f) {
+  const box = document.querySelector('#loading > div'); if (!box) return;
+  let bar = $('loading-bar'); if (!bar) { const track = document.createElement('i'); track.className = 'bar'; bar = document.createElement('i'); bar.id = 'loading-bar'; track.append(bar); box.append(track); }
+  bar.style.width = Math.round(Math.min(1, f) * 100) + '%';
+}
+let placesAsked = false;
+function wantPlaces() {                      // place names, house numbers and the street list are almost half the map's size again, so they wait until search or a close look needs them
+  if (placesAsked || IX || !G) return; placesAsked = true;
+  loadData(PLACES_URL).then(p => { IX = decodePlaces(p); G.streets = IX.streets; G.skey = null; if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender(); })
+    .catch(err => { console.error(err); setTimeout(() => { placesAsked = false; }, 8000); });
+}
 function start() {
   const l = $('loading'); l.hidden = false;
-  fetch(DATA_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(d => {
+  loadData(DATA_URL, loadBar).then(d => {
     const t0 = performance.now(); G = decode(d); perf.decode = performance.now() - t0; l.hidden = true; resize();
     const how = route(location.hash); if (!how) loadExample();
     renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); fullRender();
     if (how !== 'room' && state.people.length >= 2) run(true);
     setTimeout(sweep, 6000);
-    fetch(PLACES_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(p => { IX = decodePlaces(p); if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender(); }).catch(err => { console.error(err); });
+    if (document.activeElement === searchEl || searchEl.value.trim().length >= 2) wantPlaces();
+    try { caches.keys().then(ks => { for (const k of ks) if (k.startsWith('midpoint-data-') && k !== KEEP) caches.delete(k); }).catch(() => {}); } catch (e) {}
   }).catch(err => {
     console.error(err); if (G) return;
     const d = document.createElement('div'), b = document.createElement('b'), again = document.createElement('button'); b.textContent = tr('The Hanoi map did not load'); again.type = 'button'; again.className = 'btn'; again.textContent = tr('Try again');
@@ -1507,7 +1579,7 @@ function start() {
   });
 }
 start();
-window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, setLang, get lang() { return LANG; }, VI, renderJoin, addSelf, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
+window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, setLang, get lang() { return LANG; }, VI, renderJoin, addSelf, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; }, wantPlaces, loadData, loadBar, nums, choose, retarget };
 })();
 </script>
 

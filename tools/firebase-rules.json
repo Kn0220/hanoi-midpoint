@@ -16,6 +16,8 @@
         "s": {
           "m": { ".validate": "newData.val() === 'b' || newData.val() === 'c'" },
           "g": { ".validate": "newData.val() === 'f' || newData.val() === 't'" },
+          "k": { ".validate": "newData.val() === 1 || newData.val() === 2" },
+          "p": { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() < 100000" },
           "$other": { ".validate": false }
         },
         "pins": {

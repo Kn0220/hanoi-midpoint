@@ -13,15 +13,16 @@ Open it: https://kn0220.github.io/hanoi-midpoint/
 ## Files
 
 - `index.html` – the page (built from `src/index.html` by `tools/site.py`).
-- `hanoi-v2.json`, `hanoi-v2-places.json` – roads, places and addresses for central Hanoi and the near suburbs.
-- `tools/fetch.py`, `tools/build.py` – download OpenStreetMap data and pack it into the two data files.
+- `hanoi-v3.json` – roads, cafés and map shapes for central Hanoi and the near suburbs. `hanoi-v3-places.json` – place names, house numbers and the street list for search. Each has a `.gz` copy made by `tools/site.py`.
+- `hanoi-v2.json`, `hanoi-v2-places.json` – the same data in the earlier, larger packing. `tools/pack3.py` makes the v3 files from them; pages that were open before the change still read them.
+- `tools/fetch.py`, `tools/build.py` – download OpenStreetMap data and pack it into the v2 files. `tools/pack3.py . .` then repacks them, with nothing dropped or rounded.
 - `tools/crosscheck.py` – independent check of the page's answers.
 - `tools/site.py` – builds `index.html` from `src/index.html`; give it a database address as the third argument to switch on live groups.
 - `tools/mockdb.py` – a local stand-in for the database, for testing live groups without the real one.
 
 ## Live groups (optional)
 
-With a database address set, the page shows "Invite the group" once you have put yourself on the map. One tap starts the group and opens the phone's share sheet (elsewhere it copies the invite); everyone who opens the link adds their own pin and name, and the meeting place updates on every screen. Up to 12 people per group.
+With a database address set, the page shows "Invite the group" once you have put yourself on the map. One tap starts the group and opens the phone's share sheet (elsewhere it copies the invite); everyone who opens the link adds their own pin and name, and the meeting place updates on every screen. When someone taps another place in the list, or switches between café, food and bar, every screen follows; the pick lasts until a pin, the way of travelling or the goal changes. Up to 12 people per group.
 
 Everyone, the organiser included, is first asked where they are coming from, and their own pin is marked "you". The page remembers their name, their last place and which pin is theirs in that browser only, so next time adding themselves is one tap.
 
@@ -34,6 +35,14 @@ This site is built with its database address set, so live groups are on. To poin
     python3 tools/site.py src . https://<your-database-address>
 
 `tools/mockdb.py <port> <lifetime in ms>` is a local stand-in for the database that enforces the same rules, for testing with a short lifetime.
+
+## Data use
+
+A first visit downloads about 1.1 MB: the page, the fonts and the road map. Place names, house numbers and the street list (0.44 MB) are downloaded the first time someone uses search or zooms in close, and not at all on a phone set to save data unless they search.
+
+The page keeps both data files in the browser's own store, so later visits download no map data, also after the site is updated. That only holds while the file names stay the same: new data must get a new file name (`hanoi-v4.json`) and a new store name (`KEEP` in `src/index.html`), or people keep the old copy.
+
+The site host compresses files lightly on the way out, so `tools/site.py` writes harder-compressed `.gz` copies and the page asks for those first. A browser that cannot unpack them itself gets the plain file.
 
 ## Languages
 

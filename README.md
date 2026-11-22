@@ -25,7 +25,7 @@ Open it: https://kn0220.github.io/hanoi-midpoint/
 
 With a database address set, the page shows "Invite the group" once you have put yourself on the map. One tap starts the group and opens the phone's share sheet (elsewhere it copies the invite); everyone who opens the link adds their own pin and name, and the meeting place updates on every screen. When someone taps another place in the list, or switches between café, food and bar, every screen follows; the pick lasts until a pin, the way of travelling or the goal changes. Up to 12 people per group.
 
-Everyone, the organiser included, is first asked where they are coming from, and their own pin is marked "you". The page remembers their name, their last place and which pin is theirs in that browser only, so next time adding themselves is one tap.
+Everyone, the organiser included, is first asked where they are coming from, and their own pin is marked "you". The page remembers their name and which pin is theirs in that browser only. It does not keep where they were: adding yourself by location is one button, "Use where I am now", every time.
 
 It uses a Firebase Realtime Database through its plain web address, with no sign-in and no key. Anyone who has a group's link can see and change that group's pins, and groups cannot be listed, so a group is as private as its link.
 
@@ -49,7 +49,7 @@ The site host compresses files lightly on the way out, so `tools/site.py` writes
 
 The page is built so that a first visit can be used before the map has arrived:
 
-- The join step (name, "Use where I am now", the remembered place, search) is in the page as it arrives. Whatever is pressed early is carried out when the map lands, so finding the phone's location runs while the map downloads.
+- The join step (name, "Use where I am now", search) is in the page as it arrives. Whatever is pressed early is carried out when the map lands, so finding the phone's location runs while the map downloads.
 - The map download starts from a small script at the very top of the page, and the map is unpacked in a worker, off the main thread.
 - A group link connects to its group at once, so "Minh and Linh are on the map" shows before the map does.
 - The fonts are added by script, so nothing outside the page holds up the first paint.

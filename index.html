@@ -71,9 +71,9 @@ button { cursor: pointer; }
 .pad { padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
 
 .head { padding-block: 15px 13px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 11px; }
-.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brand h1 { margin: 0; font-family: var(--sign-font); font-size: 25px; font-weight: 700; line-height: 1; letter-spacing: .02em; text-transform: uppercase; }
-.brand span { color: var(--muted); font-size: 12.5px; }
+.seg.lang button { padding: 4px 9px; font-size: 12px; }
 .opts { display: flex; flex-wrap: wrap; gap: 8px; }
 .seg { display: inline-flex; background: var(--raised); border-radius: 8px; padding: 3px; }
 .seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
@@ -216,7 +216,6 @@ button { cursor: pointer; }
   .pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .head { padding-block: 10px 9px; gap: 8px; }
   .brand h1 { font-size: 21px; }
-  .brand span { display: none; }
   .scroll { padding-block: 13px 16px; gap: 16px; }
   .plate { padding: 13px 16px 14px; }
   .plate h2 { font-size: 27px; }
@@ -233,29 +232,29 @@ button { cursor: pointer; }
 <body>
 
 <div class="app" id="app">
-  <section class="panel" aria-label="Plan">
+  <section class="panel" aria-label="Plan" data-t="aria-label">
     <div class="head pad">
-      <div class="brand"><h1>Hanoi Midpoint</h1><span>the fair place to meet</span></div>
+      <div class="brand"><h1>Hanoi Midpoint</h1><div class="seg lang" role="group" aria-label="Language"><button type="button" id="lang-vi" lang="vi" aria-label="Tiếng Việt" aria-pressed="false">VI</button><button type="button" id="lang-en" lang="en" aria-label="English" aria-pressed="true">EN</button></div></div>
       <div class="opts">
-        <div class="seg" role="group" aria-label="How everyone travels">
-          <button type="button" id="mode-bike" aria-pressed="true">Motorbike</button>
-          <button type="button" id="mode-car" aria-pressed="false">Car</button>
+        <div class="seg" role="group" aria-label="How everyone travels" data-t="aria-label">
+          <button type="button" id="mode-bike" aria-pressed="true" data-t>Motorbike</button>
+          <button type="button" id="mode-car" aria-pressed="false" data-t>Car</button>
         </div>
-        <div class="seg" role="group" aria-label="What counts as best">
-          <button type="button" id="goal-fair" aria-pressed="true" title="Make the longest ride as short as possible">Fairest</button>
-          <button type="button" id="goal-total" aria-pressed="false" title="Make everyone's travel added together as small as possible">Least total</button>
+        <div class="seg" role="group" aria-label="What counts as best" data-t="aria-label">
+          <button type="button" id="goal-fair" aria-pressed="true" title="Make the longest ride as short as possible" data-t="text title">Fairest</button>
+          <button type="button" id="goal-total" aria-pressed="false" title="Make everyone's travel added together as small as possible" data-t="text title">Least total</button>
         </div>
       </div>
     </div>
     <div class="scroll pad" id="scroll">
       <div class="intro" id="intro" hidden>
-        <h2>Where should we meet?</h2>
-        <p>Everyone adds where they are coming from. You get the place with the fairest ride for all of you.</p>
+        <h2 data-t>Where should we meet?</h2>
+        <p data-t>Everyone adds where they are coming from. You get the place with the fairest ride for all of you.</p>
         <div class="actions">
-          <button type="button" class="btn solid" id="intro-live" hidden>Start a group link</button>
-          <button type="button" class="btn" id="intro-self">Add everyone myself</button>
+          <button type="button" class="btn solid" id="intro-live" hidden data-t>Start a group link</button>
+          <button type="button" class="btn" id="intro-self" data-t>Add everyone myself</button>
         </div>
-        <p>Below is an example with four friends.</p>
+        <p data-t>Below is an example with four friends.</p>
       </div>
       <div class="answer" id="answer" hidden>
         <div class="plate">
@@ -264,71 +263,71 @@ button { cursor: pointer; }
           <p class="sub" id="answer-sub"></p>
         </div>
         <dl class="facts">
-          <div><dt>Longest ride</dt><dd id="f-max"></dd></div>
-          <div><dt title="Longest ride minus shortest ride">Biggest gap</dt><dd id="f-gap"></dd></div>
-          <div><dt>Everyone, total</dt><dd id="f-sum"></dd></div>
+          <div><dt data-t>Longest ride</dt><dd id="f-max"></dd></div>
+          <div><dt title="Longest ride minus shortest ride" data-t="text title">Biggest gap</dt><dd id="f-gap"></dd></div>
+          <div><dt data-t>Everyone, total</dt><dd id="f-sum"></dd></div>
         </dl>
         <div class="actions">
-          <a class="btn solid" id="gmaps" target="_blank" rel="noopener">Directions in Google Maps</a>
-          <button type="button" class="btn" id="copy">Copy plan for the group chat</button>
+          <a class="btn solid" id="gmaps" target="_blank" rel="noopener" data-t>Directions in Google Maps</a>
+          <button type="button" class="btn" id="copy" data-t>Copy plan for the group chat</button>
         </div>
-        <textarea id="plan" class="plan" rows="7" readonly hidden aria-label="Plan text. Copy it from here."></textarea>
+        <textarea id="plan" class="plan" rows="7" readonly hidden aria-label="Plan text. Copy it from here." data-t="aria-label"></textarea>
       </div>
       <div class="block">
         <div class="join" id="join" hidden>
-          <h2>Where are you coming from?</h2>
+          <h2 data-t>Where are you coming from?</h2>
           <p id="join-sub"></p>
-          <input class="field" id="join-name" type="text" autocomplete="off" placeholder="Your name" aria-label="Your name">
+          <input class="field" id="join-name" type="text" autocomplete="off" placeholder="Your name" aria-label="Your name" data-t="placeholder aria-label">
           <div class="actions" id="join-ways">
             <button type="button" class="btn solid" id="join-saved" hidden></button>
-            <button type="button" class="btn" id="join-here" hidden>Use where I am now</button>
+            <button type="button" class="btn" id="join-here" hidden data-t>Use where I am now</button>
           </div>
           <p class="claim" id="join-claim" hidden></p>
         </div>
-        <div class="row-between"><span class="label" id="people-label">Who's coming</span><button type="button" class="linkbtn" id="clear">Start fresh</button></div>
+        <div class="row-between"><span class="label" id="people-label" data-t>Who's coming</span><button type="button" class="linkbtn" id="clear" data-t>Start fresh</button></div>
         <div class="live" id="live" hidden>
-          <button type="button" class="btn" id="live-start">Plan together with a live link</button>
-          <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy">Invite the group</button></div>
-          <input class="plan" id="live-link" readonly hidden aria-label="Invite link. Copy it from here.">
+          <button type="button" class="btn" id="live-start" data-t>Plan together with a live link</button>
+          <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy" data-t>Invite the group</button></div>
+          <input class="plan" id="live-link" readonly hidden aria-label="Invite link. Copy it from here." data-t="aria-label">
           <p class="hint" id="live-hint"></p>
         </div>
         <ul class="people" id="people" aria-labelledby="people-label"></ul>
         <div class="search">
-          <input id="search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Add a friend: street, alley, building, address" aria-label="Add a friend by street, alley, building or address">
+          <input id="search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Add a friend: street, alley, building, address" aria-label="Add a friend by street, alley, building or address" data-t="placeholder aria-label">
           <ul class="hits" id="hits" hidden></ul>
-          <p class="hint" id="hint">Can't find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.</p>
+          <p class="hint" id="hint" data-t>Can't find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.</p>
         </div>
       </div>
-      <button type="button" class="go" id="go" disabled>Find the spot</button>
+      <button type="button" class="go" id="go" disabled data-t>Find the spot</button>
       <div class="answer" id="answer-more" hidden>
         <div class="row-between">
-          <span class="label">Places near the midpoint</span>
-          <div class="seg" role="group" aria-label="Kind of place">
-            <button type="button" data-kind="0" aria-pressed="true">Café</button>
-            <button type="button" data-kind="1" aria-pressed="false">Food</button>
-            <button type="button" data-kind="2" aria-pressed="false">Bar</button>
+          <span class="label" data-t>Places near the midpoint</span>
+          <div class="seg" role="group" aria-label="Kind of place" data-t="aria-label">
+            <button type="button" data-kind="0" aria-pressed="true" data-t>Café</button>
+            <button type="button" data-kind="1" aria-pressed="false" data-t>Food</button>
+            <button type="button" data-kind="2" aria-pressed="false" data-t>Bar</button>
           </div>
         </div>
         <ul class="venues" id="venues"></ul>
         <p class="tally" id="tally"></p>
       </div>
-      <p class="foot">Ride times are off-peak estimates from road type and distance, with no live traffic. Roads, places and addresses © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
+      <p class="foot"><span data-t>Ride times are off-peak estimates from road type and distance, with no live traffic. Roads, places and addresses ©</span> <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a><span data-t> contributors.</span></p>
     </div>
   </section>
-  <section class="stage" id="stage" tabindex="0" aria-label="Map of Hanoi. Tap to add a friend. Arrow keys move the map, plus and minus zoom.">
+  <section class="stage" id="stage" tabindex="0" aria-label="Map of Hanoi. Tap to add a friend. Arrow keys move the map, plus and minus zoom." data-t="aria-label">
     <canvas class="layer" id="base"></canvas>
     <canvas class="layer" id="over"></canvas>
     <canvas class="layer" id="glow"></canvas>
     <div class="pins" id="pins"></div>
     <div class="ctl">
-      <button type="button" id="zin" aria-label="Zoom in">+</button>
-      <button type="button" id="zout" aria-label="Zoom out">−</button>
-      <button type="button" id="zfit" class="txt" aria-label="Fit everyone on the map">Fit</button>
+      <button type="button" id="zin" aria-label="Zoom in" data-t="aria-label">+</button>
+      <button type="button" id="zout" aria-label="Zoom out" data-t="aria-label">−</button>
+      <button type="button" id="zfit" class="txt" aria-label="Fit everyone on the map" title="Fit everyone on the map" data-t="text aria-label title">Fit</button>
     </div>
     <div class="chip" id="chip" hidden></div>
     <div class="mapfoot"><div class="scale" id="scale" aria-hidden="true"><span></span><i></i></div><span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span></div>
     <div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button type="button" id="toast-act" hidden></button></div>
-    <div class="loading" id="loading"><div><b>Loading Hanoi's roads</b><span id="loading-text">Streets, alleys and cafés for the whole city. After this, everything runs on your device.</span></div></div>
+    <div class="loading" id="loading"><div><b data-t>Loading Hanoi's roads</b><span id="loading-text" data-t>Streets, alleys and cafés for the whole city. After this, everything runs on your device.</span></div></div>
   </section>
 </div>
 
@@ -356,11 +355,187 @@ const perf = { decode: 0, solve: 0, base: 0 };
 
 /* ------------------------------------------------------------ helpers */
 const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
-const fmtMin = sec => sec < 3570 ? Math.max(1, Math.round(sec / 60)) + ' min' : Math.floor(Math.round(sec / 60) / 60) + ' h ' + String(Math.round(sec / 60) % 60).padStart(2, '0');
-const fmtKm = m => (m < 9950 ? (m / 1000).toFixed(1) : Math.round(m / 1000)) + ' km';
-const nf = n => n.toLocaleString('en-US');
+/* ------------------------------------------------------------ language: English is written in the page; Vietnamese is looked up by the English sentence */
+const VI = {
+  'Plan': 'Kế hoạch',
+  'How everyone travels': 'Mọi người đi bằng gì',
+  'What counts as best': 'Thế nào là tốt nhất',
+  'Make the longest ride as short as possible': 'Để người đi xa nhất phải đi ít nhất có thể',
+  'Make everyone\'s travel added together as small as possible': 'Để tổng thời gian đi của cả nhóm thấp nhất có thể',
+  'Where should we meet?': 'Gặp nhau ở đâu?',
+  'Start a group link': 'Tạo link nhóm',
+  'Add everyone myself': 'Tự thêm mọi người',
+  'Below is an example with four friends.': 'Bên dưới là ví dụ với bốn người bạn.',
+  'Longest ride': 'Đi lâu nhất',
+  'Biggest gap': 'Chênh lệch',
+  'Longest ride minus shortest ride': 'Người đi lâu nhất trừ người đi nhanh nhất',
+  'Everyone, total': 'Tổng cả nhóm',
+  'Directions in Google Maps': 'Chỉ đường bằng Google Maps',
+  'Copy plan for the group chat': 'Sao chép kế hoạch gửi nhóm chat',
+  'Plan text. Copy it from here.': 'Nội dung kế hoạch. Sao chép từ đây.',
+  'Where are you coming from?': 'Bạn đi từ đâu?',
+  'Your name': 'Tên bạn',
+  'Use where I am now': 'Dùng vị trí hiện tại của tôi',
+  'Who\'s coming': 'Ai sẽ đến',
+  'Plan together with a live link': 'Cùng lên kế hoạch qua link nhóm',
+  'Invite the group': 'Mời cả nhóm',
+  'Invite link. Copy it from here.': 'Link mời. Sao chép từ đây.',
+  'Places near the midpoint': 'Quán gần điểm giữa',
+  'Kind of place': 'Loại địa điểm',
+  'Café': 'Cà phê',
+  'Food': 'Ăn uống',
+  'Ride times are off-peak estimates from road type and distance, with no live traffic. Roads, places and addresses ©': 'Thời gian đi là ước tính ngoài giờ cao điểm theo loại đường và quãng đường, chưa tính tắc đường. Đường, địa điểm và địa chỉ © những người đóng góp cho',
+  ' contributors.': '.',
+  'Map of Hanoi. Tap to add a friend. Arrow keys move the map, plus and minus zoom.': 'Bản đồ Hà Nội. Chạm để thêm một người bạn. Phím mũi tên để di chuyển bản đồ, phím cộng và trừ để phóng to, thu nhỏ.',
+  'Zoom in': 'Phóng to',
+  'Zoom out': 'Thu nhỏ',
+  'Fit everyone on the map': 'Thu bản đồ cho vừa cả nhóm',
+  'Fit': 'Vừa',
+  'Loading Hanoi\'s roads': 'Đang tải đường phố Hà Nội',
+  'Streets, alleys and cafés for the whole city. After this, everything runs on your device.': 'Phố, ngõ và quán cà phê của cả thành phố. Sau bước này, mọi thứ chạy ngay trên máy bạn.',
+  'Up to {n} friends at a time': 'Tối đa {n} người một lần',
+  '{n} removed': 'Đã xoá {n}',
+  'Remove {n}': 'Xoá {n}',
+  'you': 'bạn',
+  'Near {s}': 'Gần {s}',
+  'none': 'không',
+  'longest': 'lâu nhất',
+  'Meet at {p}': 'Gặp nhau tại {p}',
+  'the midpoint near {s}': 'điểm giữa gần {s}',
+  '{n}: {km}, about {t}': '{n}: {km}, khoảng {t}',
+  'Longest ride {t} by {m} (off-peak estimate, no live traffic)': 'Người đi lâu nhất mất {t} bằng {m} (ước tính ngoài giờ cao điểm, chưa tính tắc đường)',
+  'motorbike': 'xe máy',
+  'car': 'ô tô',
+  '{n} added at {w}': 'Đã thêm {n} tại {w}',
+  'You are on the map, {n}. Drag your pin to fine-tune.': '{n} ơi, bạn đã có trên bản đồ. Kéo ghim để chỉnh cho chuẩn.',
+  '{n} added. Drag the pin to fine-tune.': 'Đã thêm {n}. Kéo ghim để chỉnh cho chuẩn.',
+  '{n} pin in this link was left out (outside the map, unreadable, or past the limit of {max})': '{n} ghim trong link này bị bỏ qua (nằm ngoài bản đồ, không đọc được, hoặc vượt giới hạn {max} người)',
+  '{n} pins in this link were left out (outside the map, unreadable, or past the limit of {max})': '{n} ghim trong link này bị bỏ qua (nằm ngoài bản đồ, không đọc được, hoặc vượt giới hạn {max} người)',
+  '{n} is on the map': '{n} đã có trên bản đồ',
+  ' It works until {t}, then the pins are deleted.': ' Link dùng được đến {t}, sau đó các ghim sẽ bị xoá.',
+  '{list} and {n} more': '{list} và {n} người nữa',
+  ' and ': ' và ',
+  'You are the first one here. Add yourself, then invite the group.': 'Bạn là người đầu tiên. Thêm vị trí của bạn rồi mời cả nhóm.',
+  '{names} are on the map. The meeting place updates as people join.': '{names} đã có trên bản đồ. Điểm hẹn sẽ cập nhật khi có thêm người.',
+  '{names} is on the map. The meeting place updates as people join.': '{names} đã có trên bản đồ. Điểm hẹn sẽ cập nhật khi có thêm người.',
+  'Add me from {w}': 'Thêm tôi từ {w}',
+  'my last place': 'chỗ lần trước',
+  'I am {n}': 'Tôi là {n}',
+  'Got it. {n} is you.': 'Đã rõ. {n} là bạn.',
+  'off {s}': 'thuộc {s}',
+  'also {s}': 'còn gọi là {s}',
+  'Short Google Maps links can\'t be opened from here. In Google Maps, press and hold on the house, then copy the coordinates or the Plus Code it shows and paste that.': 'Không mở được link rút gọn của Google Maps từ đây. Trong Google Maps, nhấn giữ vào ngôi nhà, rồi sao chép toạ độ hoặc Plus Code hiện ra và dán vào đây.',
+  'Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.': 'Không tìm thấy nhà? Phóng to rồi chạm vào, hoặc dán toạ độ hay Plus Code từ Google Maps.',
+  ' today': ' hôm nay',
+  ' tomorrow': ' ngày mai',
+  'Add your pin so we can find the fairest place to meet.': 'Thêm ghim của bạn để cả nhóm tìm chỗ gặp công bằng nhất nhé.',
+  'Searching from everyone at once checked ': 'Tìm từ tất cả mọi người cùng lúc chỉ cần xét ',
+  ' road segments before the searches met. Mapping the whole city for each friend in turn would check ': ' đoạn đường trước khi các lượt tìm gặp nhau. Nếu dò cả thành phố cho từng người thì phải xét ',
+  ' roads searched, ': ' đoạn đường đã dò, ',
+  ' out from everyone': ' từ mỗi người',
+  ' (meeting place)': ' (điểm hẹn)',
+  'That is outside the mapped part of Hanoi': 'Điểm đó nằm ngoài vùng bản đồ Hà Nội',
+  'Name': 'Tên',
+  'Nobody is on the map yet.': 'Chưa có ai trên bản đồ.',
+  'Opening the group…': 'Đang mở nhóm…',
+  'Nobody yet. Tap the map where each friend is coming from, or search below.': 'Chưa có ai. Chạm vào bản đồ ở nơi mỗi người xuất phát, hoặc tìm bên dưới.',
+  'Waiting for one more person': 'Đang chờ thêm một người',
+  'Waiting for the first two people': 'Đang chờ hai người đầu tiên',
+  'Add one more friend': 'Thêm một người nữa',
+  'Add at least two friends': 'Thêm ít nhất hai người',
+  'Replay the search': 'Xem lại quá trình tìm',
+  'Find the spot': 'Tìm điểm hẹn',
+  'The example group meets here': 'Nhóm ví dụ gặp nhau ở đây',
+  'Meet here': 'Gặp nhau ở đây',
+  'Exact midpoint': 'Đúng điểm giữa',
+  'The point on the roads that best balances everyone': 'Điểm trên đường cân bằng nhất cho mọi người',
+  'OpenStreetMap has no place of this kind near the midpoint. Try another kind.': 'OpenStreetMap chưa có địa điểm loại này gần điểm giữa. Thử loại khác nhé.',
+  'Everyone starts from the same spot, so there was nothing to search.': 'Mọi người xuất phát từ cùng một chỗ nên không cần tìm.',
+  'No road connects everyone. Move a pin closer to a main road.': 'Không có đường nào nối tất cả mọi người. Kéo ghim lại gần đường lớn hơn.',
+  'You are on the map. Add your name so the group knows who it is.': 'Bạn đã có trên bản đồ. Thêm tên để cả nhóm biết là ai.',
+  'Add name': 'Thêm tên',
+  'You left the live group. Your copy of the pins stays here.': 'Bạn đã rời nhóm. Bản sao các ghim vẫn ở lại trên máy bạn.',
+  'Cleared': 'Đã xoá hết',
+  'Undo': 'Hoàn tác',
+  'Copied': 'Đã sao chép',
+  'That point is outside the mapped part of Hanoi.': 'Điểm đó nằm ngoài vùng bản đồ Hà Nội.',
+  'Pinned spot': 'Điểm đã ghim',
+  'No record of that house number. Pick the street, then drag the pin to the house.': 'Chưa có số nhà đó. Chọn tên phố rồi kéo ghim đến đúng nhà.',
+  'Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.': 'Không có tên đó trên bản đồ. Phóng to rồi chạm vào vị trí, hoặc dán toạ độ hay Plus Code từ Google Maps.',
+  'Still loading place names. Try again in a moment, or tap the map.': 'Đang tải tên địa điểm. Thử lại sau giây lát, hoặc chạm vào bản đồ.',
+  'Could not save to the group. Check the connection.': 'Không lưu được vào nhóm. Kiểm tra kết nối mạng.',
+  'Anyone with the link can add themselves.': 'Ai có link cũng tự thêm mình được.',
+  'One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.': 'Một link cho cả nhóm. Mỗi người tự thêm ghim của mình. Link dùng được một ngày, sau đó các ghim sẽ bị xoá.',
+  'Live group': 'Nhóm đang mở',
+  'Reconnecting…': 'Đang kết nối lại…',
+  'Connecting…': 'Đang kết nối…',
+  'Leave group': 'Rời nhóm',
+  'Start fresh': 'Làm lại từ đầu',
+  'Search a street, alley, building or address': 'Tìm phố, ngõ, toà nhà hoặc địa chỉ',
+  'Add someone else: street, alley, building': 'Thêm người khác: phố, ngõ, toà nhà',
+  'Add a friend: street, alley, building, address': 'Thêm bạn: phố, ngõ, toà nhà, địa chỉ',
+  'Add a friend by street, alley, building or address': 'Thêm bạn theo phố, ngõ, toà nhà hoặc địa chỉ',
+  'Or tap the map. A nearby corner is fine if you would rather not mark your exact home.': 'Hoặc chạm vào bản đồ. Chọn một góc phố gần đó cũng được nếu bạn không muốn đánh dấu đúng nhà mình.',
+  'Already on the map?': 'Đã có trên bản đồ rồi?',
+  'Finding you…': 'Đang tìm vị trí của bạn…',
+  'Could not get your location. Search for a place or tap the map instead.': 'Không lấy được vị trí của bạn. Hãy tìm địa điểm hoặc chạm vào bản đồ.',
+  'This group link has ended. Links last a day. Your copy of the pins stays here.': 'Link nhóm này đã hết hạn. Link chỉ dùng được một ngày. Bản sao các ghim vẫn ở lại trên máy bạn.',
+  'This group link has ended. Links last a day. Start a new one to plan again.': 'Link nhóm này đã hết hạn. Link chỉ dùng được một ngày. Tạo link mới để lên kế hoạch lại.',
+  'Could not start a live group. Check the connection and try again.': 'Không tạo được nhóm. Kiểm tra kết nối mạng rồi thử lại.',
+  'Group started. The invite is copied: paste it in your group chat.': 'Đã tạo nhóm. Lời mời đã được sao chép: dán vào nhóm chat của bạn.',
+  'Invite copied': 'Đã sao chép lời mời',
+  'That is a live group link. It only works on the hosted site.': 'Đây là link nhóm. Link chỉ hoạt động trên trang chính thức.',
+  'The Hanoi map did not load': 'Không tải được bản đồ Hà Nội',
+  'Try again': 'Thử lại',
+  'Check the connection, then try again.': 'Kiểm tra kết nối mạng rồi thử lại.',
+  'Unnamed road': 'Đường chưa có tên',
+  ' min': ' phút',
+  ' h ': ' giờ ',
+  'Area': 'Khu vực',
+  'Homes': 'Khu nhà ở',
+  'School': 'Trường học',
+  'Health': 'Y tế',
+  'Shop': 'Cửa hàng',
+  'Transit': 'Giao thông',
+  'Sight': 'Điểm tham quan',
+  'Address': 'Địa chỉ',
+  'Place': 'Địa điểm',
+  'Alley': 'Ngõ',
+  'Street': 'Phố',
+  'River': 'Sông',
+  'Lake': 'Hồ',
+  'Park': 'Công viên',
+  'Coordinates': 'Toạ độ',
+  'Motorbike': 'Xe máy',
+  'Car': 'Ô tô',
+  'Fairest': 'Công bằng nhất',
+  'Least total': 'Tổng ít nhất',
+  'Everyone adds where they are coming from. You get the place with the fairest ride for all of you.': 'Mỗi người thêm nơi mình xuất phát. Bạn sẽ có điểm hẹn công bằng nhất về đường đi cho cả nhóm.',
+  '{n}, {w}. Drag to move.': '{n}, {w}. Kéo để di chuyển.'
+};
+let LANG = 'en';
+try { const saved = localStorage.getItem('midpoint-lang'); LANG = saved === 'vi' || saved === 'en' ? saved : (navigator.languages || [navigator.language || '']).some(l => /^vi\b/i.test(l)) ? 'vi' : 'en'; } catch (e) {}
+const tr = (en, vars) => { let out = (LANG === 'vi' && VI[en]) || en; if (vars) for (const k in vars) out = out.split('{' + k + '}').join(vars[k]); return out; };
+const WORDED = [...document.querySelectorAll('[data-t]')].map(el => [el, (el.dataset.t || 'text').split(' ').map(a => [a, a === 'text' ? el.textContent : el.getAttribute(a)])]);   // every fixed piece of text, with its English
+function applyLang() {
+  document.documentElement.lang = LANG;
+  for (const [el, list] of WORDED) for (const [a, en] of list) { if (a === 'text') el.textContent = tr(en); else el.setAttribute(a, tr(en)); }
+  document.getElementById('lang-vi').setAttribute('aria-pressed', LANG === 'vi'); document.getElementById('lang-en').setAttribute('aria-pressed', LANG === 'en');
+}
+function setLang(l) {
+  LANG = l === 'vi' ? 'vi' : 'en'; try { localStorage.setItem('midpoint-lang', LANG); } catch (e) {}
+  applyLang(); if (!G) return;
+  if (!animating) document.getElementById('chip').hidden = true;
+  renderPanel(); renderPins(); renderMarks(); if (!hitsEl.hidden && searchEl.value.trim().length >= 2) doSearch();
+}
+document.getElementById('lang-vi').addEventListener('click', () => setLang('vi'));
+document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
+applyLang();
+const fmtMin = sec => sec < 3570 ? Math.max(1, Math.round(sec / 60)) + tr(' min') : Math.floor(Math.round(sec / 60) / 60) + tr(' h ') + String(Math.round(sec / 60) % 60).padStart(2, '0');
+const fmtKm = m => (m < 9950 ? (m / 1000).toFixed(1).replace('.', LANG === 'vi' ? ',' : '.') : Math.round(m / 1000)) + ' km';
+const nf = n => n.toLocaleString(LANG === 'vi' ? 'vi-VN' : 'en-US');
 const cleanName = s => [...String(s).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}]/gu, '').trim()].slice(0, MAX_NAME).join('');
-const initial = p => { const m = /^Friend (\d)$/.exec(p.name.trim()); return m ? m[1] : ([...p.name.trim()][0] || '?').toUpperCase(); };
+const initial = p => { const m = /^(?:Friend|Bạn) (\d)$/.exec(p.name.trim()); return m ? m[1] : ([...p.name.trim()][0] || '?').toUpperCase(); };
 let toastT = 0;
 function toast(msg, action, fn) {
   const t = $('toast'), b = $('toast-act'); $('toast-text').textContent = msg; t.hidden = false;
@@ -487,7 +662,7 @@ function describe(v) {            // "Phố Kim Mã, Phường Giảng Võ"
   for (let k = G.off[v]; k < G.off[v + 1]; k++) { const e = G.arcEdge[k]; if (G.ename[e] && G.ecls[e] < sc) { sc = G.ecls[e]; street = G.names[G.ename[e]]; } }
   if (!street) { let bd = 200 * 200; const c = Math.min(G.gw - 1, Math.max(0, Math.floor((G.px[v] - G.bounds[0]) / G.CELL))) + G.gw * Math.min(G.gh - 1, Math.max(0, Math.floor((G.py[v] - G.bounds[1]) / G.CELL)));
     for (let k = G.eCount[c]; k < G.eCount[c + 1]; k++) { const e = G.eCell[k]; if (!G.ename[e]) continue; const dd = Math.min((G.px[G.ea[e]] - G.px[v]) ** 2 + (G.py[G.ea[e]] - G.py[v]) ** 2, (G.px[G.eb[e]] - G.px[v]) ** 2 + (G.py[G.eb[e]] - G.py[v]) ** 2); if (dd < bd) { bd = dd; street = G.names[G.ename[e]]; } } }
-  out = [street, areaNear(G.px[v], G.py[v])].filter(Boolean).join(', ') || 'Unnamed road';
+  out = [street, areaNear(G.px[v], G.py[v])].filter(Boolean).join(', ') || tr('Unnamed road');
   G.where.set(v, out); return out;
 }
 
@@ -565,16 +740,16 @@ function setTarget(t) {                     // t: {kind:'venue', i} or {kind:'ex
 }
 
 /* ------------------------------------------------------------ people */
-function freeName() { for (let n = 1; ; n++) if (!state.people.some(p => p.name === 'Friend ' + n)) return 'Friend ' + n; }
+function freeName() { const w = LANG === 'vi' ? 'Bạn ' : 'Friend '; for (let n = 1; ; n++) if (!state.people.some(p => p.name === w + n)) return w + n; }
 function addPerson(x, y, name, opts) {       // returns the person, or null with a reason shown
   opts = opts || {};
-  if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast('Up to ' + MAX_PEOPLE + ' friends at a time'); return null; }
+  if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast(tr('Up to {n} friends at a time', { n: MAX_PEOPLE })); return null; }
   const used = new Set(state.people.map(p => p.color));
   const me = !!room && !opts.remote && !state.people.some(q => q.me);   // in a live group, the first pin added on this device is this person's own
   const typed = me ? cleanName($('join-name').value) : '', last = me ? cleanName(mem.get()) : '';   // it takes the name typed in the join step, or the one used last time
   if (typed) mem.set(typed);
   const p = { id: state.nextId++, me, name: cleanName(name || '') || typed || (last && !state.people.some(q => q.name === last) ? last : '') || freeName(), x, y, v: -1, snapD: 0, color: (opts.color && !used.has(opts.color) ? opts.color : '') || COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null, mine: !!room && !opts.remote };
-  if (typeof x !== 'number' || typeof y !== 'number' || !inBounds(x, y) || !snap(p)) { if (!opts.quiet) toast('That is outside the mapped part of Hanoi'); return null; }
+  if (typeof x !== 'number' || typeof y !== 'number' || !inBounds(x, y) || !snap(p)) { if (!opts.quiet) toast(tr('That is outside the mapped part of Hanoi')); return null; }
   state.people.push(p); return p;
 }
 let autoT = 0, live = false;             // live: an answer was showing, so keep one showing
@@ -588,7 +763,7 @@ function resnapAll() { for (const p of state.people) snap(p); }
 function removePerson(p) {
   const i = state.people.indexOf(p); if (i < 0) return;
   state.people.splice(i, 1); state.example = false; changed(true);
-  toast(p.name + ' removed', 'Undo', () => { if (state.people.length < MAX_PEOPLE && !state.people.includes(p)) { state.people.splice(Math.min(i, state.people.length), 0, p); snap(p); changed(true); } });
+  toast(tr('{n} removed', { n: p.name }), tr('Undo'), () => { if (state.people.length < MAX_PEOPLE && !state.people.includes(p)) { state.people.splice(Math.min(i, state.people.length), 0, p); snap(p); changed(true); } });
 }
 
 /* ------------------------------------------------------------ panel */
@@ -601,57 +776,57 @@ function renderPanel() {
     const li = document.createElement('li'); li.className = 'person';
     const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = p.color; dot.textContent = initial(p);
     const who = document.createElement('div'); who.className = 'who';
-    const inp = document.createElement('input'); inp.id = 'name-' + p.id; inp.dataset.pid = p.id; inp.value = p.name; inp.maxLength = MAX_NAME; inp.setAttribute('aria-label', 'Name'); inp.autocomplete = 'off';
+    const inp = document.createElement('input'); inp.id = 'name-' + p.id; inp.dataset.pid = p.id; inp.value = p.name; inp.maxLength = MAX_NAME; inp.setAttribute('aria-label', tr('Name')); inp.autocomplete = 'off';
     inp.addEventListener('input', () => { p.name = inp.value; dot.textContent = initial(p); renderPins(); writeHash(); pushSoon(); });
-    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } if (p.me && !/^Friend \d+$/.test(c)) mem.set(c); pushRoom(); });
+    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } if (p.me && !/^(?:Friend|Bạn) \d+$/.test(c)) mem.set(c); pushRoom(); });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
     const wh = document.createElement('span'); wh.className = 'where'; wh.textContent = p.where; wh.title = p.where;
     const nm = document.createElement('div'); nm.className = 'nm'; nm.append(inp);
-    if (p.me) { const y = document.createElement('span'); y.className = 'you'; y.textContent = 'you'; nm.append(y); }
+    if (p.me) { const y = document.createElement('span'); y.className = 'you'; y.textContent = tr('you'); nm.append(y); }
     who.append(nm, wh);
     if (times) { const bar = document.createElement('div'); bar.className = 'bar'; const f = document.createElement('i'); f.style.background = p.color; f.style.width = (tmax > 0 ? Math.max(3, times[i] / tmax * 100) : 3) + '%'; bar.append(f); who.append(bar); }
     const trip = document.createElement('div'); trip.className = 'trip' + (i === longest && state.people.length > 1 && tmax > 0 ? ' long' : '');
     if (times) { const b = document.createElement('b'); b.textContent = fmtMin(times[i]); trip.append(b, fmtKm(res.paths[i].metres)); }
-    const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + p.name);
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', tr('Remove {n}', { n: p.name }));
     x.addEventListener('click', () => removePerson(p));
     li.append(dot, who, trip, x); ul.append(li);
   });
   if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
   $('intro').hidden = !state.example || !!room; renderJoin();
   $('clear').hidden = !state.people.length && !room; renderLive();
-  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? 'Nobody is on the map yet.' : 'Opening the group…') : 'Nobody yet. Tap the map where each friend is coming from, or search below.'; ul.append(li); }
+  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? tr('Nobody is on the map yet.') : tr('Opening the group…')) : tr('Nobody yet. Tap the map where each friend is coming from, or search below.'); ul.append(li); }
   const go = $('go'); go.disabled = state.people.length < 2; go.classList.toggle('stale', !res && state.people.length >= 2);
-  go.textContent = state.people.length < 2 ? (room ? (state.people.length ? 'Waiting for one more person' : 'Waiting for the first two people') : state.people.length ? 'Add one more friend' : 'Add at least two friends') : res ? 'Replay the search' : 'Find the spot';
+  go.textContent = state.people.length < 2 ? (room ? (state.people.length ? tr('Waiting for one more person') : tr('Waiting for the first two people')) : state.people.length ? tr('Add one more friend') : tr('Add at least two friends')) : res ? tr('Replay the search') : tr('Find the spot');
   $('answer').hidden = $('answer-more').hidden = !times;
   if (!times) return;
   const t = res.target;
-  $('answer-kicker').textContent = t.kind === 'venue' ? (state.example ? 'The example group meets here' : 'Meet here') : 'Exact midpoint';
-  $('answer-title').textContent = t.kind === 'venue' ? G.pn[t.i] : 'Near ' + describe(t.v);
-  $('answer-sub').textContent = t.kind === 'venue' ? describe(t.v) : 'The point on the roads that best balances everyone';
+  $('answer-kicker').textContent = t.kind === 'venue' ? (state.example ? tr('The example group meets here') : tr('Meet here')) : tr('Exact midpoint');
+  $('answer-title').textContent = t.kind === 'venue' ? G.pn[t.i] : tr('Near {s}', { s: describe(t.v) });
+  $('answer-sub').textContent = t.kind === 'venue' ? describe(t.v) : tr('The point on the roads that best balances everyone');
   const tmin = Math.min(...times);
-  $('f-max').textContent = fmtMin(tmax); $('f-gap').textContent = tmax - tmin < 30 ? 'none' : fmtMin(tmax - tmin); $('f-sum').textContent = fmtMin(times.reduce((a, b) => a + b, 0));
+  $('f-max').textContent = fmtMin(tmax); $('f-gap').textContent = tmax - tmin < 30 ? tr('none') : fmtMin(tmax - tmin); $('f-sum').textContent = fmtMin(times.reduce((a, b) => a + b, 0));
   $('gmaps').href = mapsLink(t);
   const vl = $('venues'); vl.textContent = '';
   const row = (label, title, sub, v, pressed, onClick) => {
     const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', pressed);
     const n = document.createElement('span'); n.className = 'n'; n.textContent = label;
     const vn = document.createElement('span'); vn.className = 'vn'; const bb = document.createElement('b'); bb.textContent = title; const ss = document.createElement('span'); ss.textContent = sub; vn.append(bb, ss);
-    const vt = document.createElement('span'); vt.className = 'vt'; const m = document.createElement('b'); m.textContent = fmtMin(res.worst[v]); vt.append('longest ', m);
+    const vt = document.createElement('span'); vt.className = 'vt'; const m = document.createElement('b'); m.textContent = fmtMin(res.worst[v]); vt.append(tr('longest') + ' ', m);
     b.append(n, vn, vt); b.addEventListener('click', onClick); li.append(b); vl.append(li);
   };
   res.venues.forEach((i, k) => row(String(k + 1), G.pn[i], describe(venueV(i)), venueV(i), t.kind === 'venue' && t.i === i, () => setTarget({ kind: 'venue', i })));
-  if (!res.venues.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = 'OpenStreetMap has no place of this kind near the midpoint. Try another kind.'; vl.append(li); }
-  row('◎', 'Exact midpoint', 'Near ' + describe(res.best), res.best, t.kind === 'exact', () => setTarget({ kind: 'exact' }));
+  if (!res.venues.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = tr('OpenStreetMap has no place of this kind near the midpoint. Try another kind.'); vl.append(li); }
+  row('◎', tr('Exact midpoint'), tr('Near {s}', { s: describe(res.best) }), res.best, t.kind === 'exact', () => setTarget({ kind: 'exact' }));
   const ty = $('tally'); ty.textContent = '';
-  if (res.checked > 0) ty.append('Searching from everyone at once checked ', Object.assign(document.createElement('b'), { textContent: nf(res.checked) }), ' road segments before the searches met. Mapping the whole city for each friend in turn would check ', Object.assign(document.createElement('b'), { textContent: nf(res.oneByOne) }), '.');
-  else ty.append('Everyone starts from the same spot, so there was nothing to search.');
+  if (res.checked > 0) ty.append(tr('Searching from everyone at once checked '), Object.assign(document.createElement('b'), { textContent: nf(res.checked) }), tr(' road segments before the searches met. Mapping the whole city for each friend in turn would check '), Object.assign(document.createElement('b'), { textContent: nf(res.oneByOne) }), '.');
+  else ty.append(tr('Everyone starts from the same spot, so there was nothing to search.'));
 }
 const mapsLink = t => { const ll = toLatLon(t.x, t.y); return 'https://www.google.com/maps/dir/?api=1&destination=' + ll[0].toFixed(5) + ',' + ll[1].toFixed(5); };   // directions from wherever the person opening it is
 function planText() {
   const res = state.result, t = res.target, times = state.people.map((p, i) => res.runs[i].dist[t.v]);
-  const lines = ['Meet at ' + (t.kind === 'venue' ? G.pn[t.i] + ' (' + describe(t.v) + ')' : 'the midpoint near ' + describe(t.v)), mapsLink(t), ''];
-  state.people.forEach((p, i) => lines.push(p.name + ': ' + fmtKm(res.paths[i].metres) + ', about ' + fmtMin(times[i])));
-  lines.push('', 'Longest ride ' + fmtMin(Math.max(...times)) + ' by ' + (state.mode === 'bike' ? 'motorbike' : 'car') + ' (off-peak estimate, no live traffic)');
+  const lines = [tr('Meet at {p}', { p: t.kind === 'venue' ? G.pn[t.i] + ' (' + describe(t.v) + ')' : tr('the midpoint near {s}', { s: describe(t.v) }) }), mapsLink(t), ''];
+  state.people.forEach((p, i) => lines.push(tr('{n}: {km}, about {t}', { n: p.name, km: fmtKm(res.paths[i].metres), t: fmtMin(times[i]) })));
+  lines.push('', tr('Longest ride {t} by {m} (off-peak estimate, no live traffic)', { t: fmtMin(Math.max(...times)), m: tr(state.mode === 'bike' ? 'motorbike' : 'car') }));
   return lines.join('\n');
 }
 
@@ -827,7 +1002,7 @@ function animate() {
     res.fronts.forEach((f, i) => { const to = f.start[b]; if (to > last[i]) strokeFront(octx, i, last[i], to, rect, maxCls, rough); last[i] = to; n += to; });
     octx.globalAlpha = 1; octx.globalCompositeOperation = 'source-over';
     if (p < 1) { gctx.globalAlpha = 0.9; gctx.lineWidth = 2.4 / drawn.s; gctx.lineCap = 'round'; res.fronts.forEach((f, i) => strokeFront(gctx, i, f.start[Math.max(0, b - 14)], f.start[b], rect, maxCls, rough)); }
-    chip.textContent = ''; chip.append(Object.assign(document.createElement('b'), { textContent: nf(n) }), ' roads searched, ', Object.assign(document.createElement('b'), { textContent: fmtMin(res.stop * q) }), ' out from everyone');
+    chip.textContent = ''; chip.append(Object.assign(document.createElement('b'), { textContent: nf(n) }), tr(' roads searched, '), Object.assign(document.createElement('b'), { textContent: fmtMin(res.stop * q) }), tr(' out from everyone'));
     if (p < 1) animRaf = requestAnimationFrame(step); else { ended = true; animating = false; clearGlow(); setTimeout(() => { if (!animating) chip.hidden = true; }, 1800); finish(); }
   };
   animRaf = requestAnimationFrame(step);
@@ -839,7 +1014,7 @@ function run(animated, keepView) {
   if (!G || state.people.length < 2) return;
   cancelAnimationFrame(animRaf); animating = false; clearGlow();
   const res = solve();
-  if (!res) { state.result = null; renderPanel(); renderMarks(); drawOverlay(0); toast('No road connects everyone. Move a pin closer to a main road.'); return; }
+  if (!res) { state.result = null; renderPanel(); renderMarks(); drawOverlay(0); toast(tr('No road connects everyone. Move a pin closer to a main road.')); return; }
   state.result = res;
   if (!keepView) fit(state.people.map(p => [p.x, p.y]).concat([[G.px[res.best], G.py[res.best]]]));
   if (animated && W >= 8) { renderMarks(); renderPanel(); animate(); } else { $('chip').hidden = true; finish(); }
@@ -849,7 +1024,7 @@ function run(animated, keepView) {
 function renderPins() {
   for (const el of [...pinsEl.querySelectorAll('.pin')]) el.remove();
   for (const p of state.people) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'pin'; b.dataset.id = p.id; b.setAttribute('aria-label', p.name + ', ' + p.where + '. Drag to move.');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pin'; b.dataset.id = p.id; b.setAttribute('aria-label', tr('{n}, {w}. Drag to move.', { n: p.name, w: p.where }));
     const i = document.createElement('i'); i.style.background = p.color; const l = document.createElement('b'); l.textContent = initial(p); i.append(l);
     const s = document.createElement('span'); s.textContent = p.name; b.append(i, s); pinsEl.append(b);
     b.addEventListener('pointerdown', ev => startPinDrag(ev, p, b));
@@ -859,9 +1034,9 @@ function renderPins() {
 function renderMarks() {
   for (const el of [...pinsEl.querySelectorAll('.mark')]) el.remove();
   const res = state.result; if (!res || !res.target) { placeDom(); return; }
-  const mk = (label, x, y, on, cls, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'mark' + (on ? ' on' : '') + cls; b.textContent = on ? '★' : label; b.dataset.x = x; b.dataset.y = y; b.title = title; b.setAttribute('aria-label', title + (on ? ' (meeting place)' : '')); b.addEventListener('click', fn); b.addEventListener('pointerdown', e => e.stopPropagation()); pinsEl.append(b); };
+  const mk = (label, x, y, on, cls, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'mark' + (on ? ' on' : '') + cls; b.textContent = on ? '★' : label; b.dataset.x = x; b.dataset.y = y; b.title = title; b.setAttribute('aria-label', title + (on ? tr(' (meeting place)') : '')); b.addEventListener('click', fn); b.addEventListener('pointerdown', e => e.stopPropagation()); pinsEl.append(b); };
   res.venues.forEach((i, k) => mk(String(k + 1), G.pox[i], G.poy[i], res.target.kind === 'venue' && res.target.i === i, '', G.pn[i], () => setTarget({ kind: 'venue', i })));
-  mk('', G.px[res.best], G.py[res.best], res.target.kind === 'exact', ' exact', 'Exact midpoint', () => setTarget({ kind: 'exact' }));
+  mk('', G.px[res.best], G.py[res.best], res.target.kind === 'exact', ' exact', tr('Exact midpoint'), () => setTarget({ kind: 'exact' }));
   placeDom();
 }
 function placeDom() {
@@ -881,7 +1056,7 @@ function startPinDrag(ev, p, el) {
   const move = e => { if (!moved && Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) < 4) return; moved = true; el._x = wx(e.clientX - r.left + ox); el._y = wy(e.clientY - r.top + oy); placeDom(); };
   const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); el.classList.remove('drag');
     if (moved) { const old = [p.x, p.y, p.label]; p.x = el._x; p.y = el._y; p.label = '';
-      if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true); } else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast('That is outside the mapped part of Hanoi'); } }
+      if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true); } else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast(tr('That is outside the mapped part of Hanoi')); } }
     el._x = el._y = undefined; placeDom(); };
   el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
 }
@@ -929,12 +1104,12 @@ function tapMap(x, y) {
   if (!p) { state.people = keep; lastTap = { t: now, x, y, p: null }; return; }
   state.example = false; lastTap = { t: now, x, y, p, restore };
   changed(true);
-  if (p.me) welcome(p); else toast(p.name + ' added at ' + p.where.split(',')[0], 'Undo', () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
+  if (p.me) welcome(p); else toast(tr('{n} added at {w}', { n: p.name, w: p.where.split(',')[0] }), tr('Undo'), () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
 }
 function welcome(p) {                        // this device's own pin just went on the map
   const ask = () => { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } };
-  if (/^Friend \d+$/.test(p.name)) toast('You are on the map. Add your name so the group knows who it is.', 'Add name', ask);
-  else toast('You are on the map, ' + p.name + '. Drag your pin to fine-tune.');
+  if (/^(?:Friend|Bạn) \d+$/.test(p.name)) toast(tr('You are on the map. Add your name so the group knows who it is.'), tr('Add name'), ask);
+  else toast(tr('You are on the map, {n}. Drag your pin to fine-tune.', { n: p.name }));
 }
 $('zin').addEventListener('click', () => zoomAt(1.6, W / 2, H / 2));
 $('zout').addEventListener('click', () => zoomAt(1 / 1.6, W / 2, H / 2));
@@ -946,8 +1121,8 @@ seg(['mode-bike', 'mode-car'], 'mode', ['bike', 'car'], () => { if (!G) return; 
 seg(['goal-fair', 'goal-total'], 'goal', ['fair', 'total'], () => { if (!G) return; changed(true); });
 document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { state.kind = +b.dataset.kind; document.querySelectorAll('[data-kind]').forEach(o => o.setAttribute('aria-pressed', o === b)); const r = state.result; if (r && r.target) { rankVenues(r); setTarget(r.venues.length ? { kind: 'venue', i: r.venues[0] } : { kind: 'exact' }); } }));
 $('go').addEventListener('click', () => { userRun = true; run(true); });
-$('clear').addEventListener('click', () => { if (room) { leaveRoom(); toast('You left the live group. Your copy of the pins stays here.'); return; } const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast('Cleared', 'Undo', () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
-$('copy').addEventListener('click', async () => { const b = $('copy'), text = planText(); try { await navigator.clipboard.writeText(text); b.textContent = 'Copied'; } catch (e) { const ta = $('plan'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); return; } setTimeout(() => { b.textContent = 'Copy plan for the group chat'; }, 1600); });
+$('clear').addEventListener('click', () => { if (room) { leaveRoom(); toast(tr('You left the live group. Your copy of the pins stays here.')); return; } const old = state.people.slice(), wasExample = state.example; state.people = []; state.example = false; changed(); fit([]); if (old.length && !wasExample) toast(tr('Cleared'), tr('Undo'), () => { if (!state.people.length) { state.people = old; resnapAll(); changed(); fit(old.map(p => [p.x, p.y])); } }); });
+$('copy').addEventListener('click', async () => { const b = $('copy'), text = planText(); try { await navigator.clipboard.writeText(text); b.textContent = tr('Copied'); } catch (e) { const ta = $('plan'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); return; } setTimeout(() => { b.textContent = tr('Copy plan for the group chat'); }, 1600); });
 
 /* ------------------------------------------------------------ finding a place by name, address, coordinates or Plus Code */
 const OLC = '23456789CFGHJMPQRVWX';
@@ -989,10 +1164,10 @@ function lookup(qv) {
     if (!multi) return 9; for (let k = 0; k < toks.length; k++) if (!hasTok(key, toks[k], numeric[k])) return 9; return 4; };
   const pool = [];
   G.akey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.areas[i]; pool.push([s + 0.05, a.name, 'Area', a.x, a.y, '']); } });
-  G.skey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.streets[i]; pool.push([s + 0.2, a.name, /^(ng[õo]|ng[áa]ch|h[ẻe]m)(\s|$)/i.test(a.name) ? 'Alley' : 'Street', a.x, a.y, a.ctx ? 'off ' + a.ctx : '']); } });
-  G.wkey.forEach((k, i) => { const s = Math.min(score(k[0]), k[1] ? score(k[1]) + 0.1 : 9); if (s < 9) { const a = G.wlabels[i]; pool.push([s + 0.1, a.name, /^s[oô]ng /i.test(a.name) ? 'River' : 'Lake', a.x, a.y, a.alt && score(k[0]) > s ? 'also ' + a.alt : '']); } });
+  G.skey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.streets[i]; pool.push([s + 0.2, a.name, /^(ng[õo]|ng[áa]ch|h[ẻe]m)(\s|$)/i.test(a.name) ? 'Alley' : 'Street', a.x, a.y, a.ctx ? tr('off {s}', { s: a.ctx }) : '']); } });
+  G.wkey.forEach((k, i) => { const s = Math.min(score(k[0]), k[1] ? score(k[1]) + 0.1 : 9); if (s < 9) { const a = G.wlabels[i]; pool.push([s + 0.1, a.name, /^s[oô]ng /i.test(a.name) ? 'River' : 'Lake', a.x, a.y, a.alt && score(k[0]) > s ? tr('also {s}', { s: a.alt }) : '']); } });
   G.gkey.forEach((k, i) => { const s = score(k); if (s < 9) { const a = G.glabels[i]; pool.push([s + 0.15, a.name, 'Park', a.x, a.y, '']); } });
-  if (IX) for (let i = 0; i < IX.N; i++) { let s = score(IX.key[i]), via = ''; const ak = IX.altKey[i]; if (ak !== undefined && s > 0) { const s2 = score(ak) + 0.1; if (s2 < s) { s = s2; via = 'also ' + IX.alt[i]; } } if (s < 9) pool.push([s + WEIGHT[IX.k[i]], IX.name[i], KIND_LABEL[IX.k[i]], IX.x[i], IX.y[i], via]); }
+  if (IX) for (let i = 0; i < IX.N; i++) { let s = score(IX.key[i]), via = ''; const ak = IX.altKey[i]; if (ak !== undefined && s > 0) { const s2 = score(ak) + 0.1; if (s2 < s) { s = s2; via = tr('also {s}', { s: IX.alt[i] }); } } if (s < 9) pool.push([s + WEIGHT[IX.k[i]], IX.name[i], KIND_LABEL[IX.k[i]], IX.x[i], IX.y[i], via]); }
   G.pkey.forEach((k, i) => { const s = score(k); if (s < 9) pool.push([s + 0.6, G.pn[i], ['Café', 'Food', 'Bar'][G.pk[i]], G.pox[i], G.poy[i], '']); });
   pool.sort((a, b) => a[0] - b[0] || a[1].length - b[1].length || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
   const out = [];
@@ -1005,21 +1180,21 @@ function doSearch() {
   const raw = searchEl.value.slice(0, 300); hits = []; hitOn = 0; hitsEl.textContent = ''; hitsEl.hidden = true;
   if (!G || raw.trim().length < 2) return;
   const loc = parseLocation(raw); let lead = '';
-  if (loc && loc.short) { note('Short Google Maps links can\'t be opened from here. In Google Maps, press and hold on the house, then copy the coordinates or the Plus Code it shows and paste that.'); return; }
-  if (loc) { const xy = toXY(loc.lat, loc.lon); if (!(Math.abs(loc.lat) <= 90) || !inBounds(xy[0], xy[1])) { note('That point is outside the mapped part of Hanoi.'); return; }
-    hits = [[0, loc.lat.toFixed(5) + ', ' + loc.lon.toFixed(5), loc.how, xy[0], xy[1], '', 'Pinned spot']]; }
+  if (loc && loc.short) { note(tr('Short Google Maps links can\'t be opened from here. In Google Maps, press and hold on the house, then copy the coordinates or the Plus Code it shows and paste that.')); return; }
+  if (loc) { const xy = toXY(loc.lat, loc.lon); if (!(Math.abs(loc.lat) <= 90) || !inBounds(xy[0], xy[1])) { note(tr('That point is outside the mapped part of Hanoi.')); return; }
+    hits = [[0, loc.lat.toFixed(5) + ', ' + loc.lon.toFixed(5), loc.how, xy[0], xy[1], '', tr('Pinned spot')]]; }
   else {
     ensureKeys();
     const qv = fold(raw).replace(/[^a-z0-9/+&'-]+/g, ' ').replace(/\s+/g, ' ').trim(); if (qv.length < 2) return;
     const words = qv.split(' ');
     hits = lookup(qv);
     if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w)).join(' '); if (t.length >= 2 && t !== qv) hits = lookup(t); }
-    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w) && !/^\d+[a-z]?(\/\d+[a-z]?)*$/.test(w)).join(' '); if (t.length >= 2 && t !== qv) { hits = lookup(t); if (hits.length) lead = 'No record of that house number. Pick the street, then drag the pin to the house.'; } }
-    if (!hits.length) { note(IX ? 'Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.' : 'Still loading place names. Try again in a moment, or tap the map.'); return; }
+    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w) && !/^\d+[a-z]?(\/\d+[a-z]?)*$/.test(w)).join(' '); if (t.length >= 2 && t !== qv) { hits = lookup(t); if (hits.length) lead = tr('No record of that house number. Pick the street, then drag the pin to the house.'); } }
+    if (!hits.length) { note(IX ? tr('Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.') : tr('Still loading place names. Try again in a moment, or tap the map.')); return; }
   }
   if (lead) note(lead);
   hits.forEach((h, i) => { const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; if (i === 0) b.className = 'on';
-    const near = areaNear(h[3], h[4]), t = document.createElement('b'); t.textContent = h[1]; const s = document.createElement('small'); s.textContent = [h[2], h[5], near !== h[1] ? near : ''].filter(Boolean).join(' · ');
+    const near = areaNear(h[3], h[4]), t = document.createElement('b'); t.textContent = h[1]; const s = document.createElement('small'); s.textContent = [tr(h[2]), h[5], near !== h[1] ? near : ''].filter(Boolean).join(' · ');
     b.append(t, s); b.addEventListener('click', () => pickHit(i)); li.append(b); hitsEl.append(li); });
   hitsEl.hidden = false;
 }
@@ -1032,7 +1207,7 @@ function pickHit(i) {
   state.example = false; searchEl.value = ''; hitsEl.hidden = true; hits = []; app.classList.remove('searching');
   changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged();
   if (p.me) { if (narrow.matches) searchEl.blur(); welcome(p); }
-  else if (narrow.matches) { searchEl.blur(); toast(p.name + ' added. Drag the pin to fine-tune.'); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
+  else if (narrow.matches) { searchEl.blur(); toast(tr('{n} added. Drag the pin to fine-tune.', { n: p.name })); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
 }
 let searchT = 0;
 searchEl.addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });
@@ -1070,7 +1245,7 @@ function loadHash(hash) {
   state.mode = h.mode; state.goal = h.goal; state.people = []; state.example = false; state.result = null;
   syncSegs();
   let dropped = h.dropped; for (const [x, y, name] of h.pins) if (!addPerson(x, y, name, { quiet: true })) dropped++;
-  if (dropped) toast(dropped + (dropped === 1 ? ' pin in this link was' : ' pins in this link were') + ' left out (outside the map, unreadable, or past the limit of ' + MAX_PEOPLE + ')');
+  if (dropped) toast(tr(dropped === 1 ? '{n} pin in this link was left out (outside the map, unreadable, or past the limit of {max})' : '{n} pins in this link were left out (outside the map, unreadable, or past the limit of {max})', { n: dropped, max: MAX_PEOPLE }));
   return state.people.length > 0;
 }
 function loadExample() { state.people = []; state.example = true; for (const [name, lat, lon] of EXAMPLE) { const xy = toXY(lat, lon); addPerson(xy[0], xy[1], name, { quiet: true }); } }
@@ -1090,7 +1265,7 @@ const newRoom = id => ({ id, doc: { s: {}, pins: {} }, es: null, ready: false, s
 function send(method, path, body) {
   const r = room, url = roomUrl(path);
   r.q = r.q.then(() => fetch(url, { method, body: body === undefined ? undefined : JSON.stringify(body) })).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); })
-    .catch(err => { console.error(err); r.failed = true; if (room === r && r.shown) toast('Could not save to the group. Check the connection.'); });
+    .catch(err => { console.error(err); r.failed = true; if (room === r && r.shown) toast(tr('Could not save to the group. Check the connection.')); });
 }
 function pushSoon() { clearTimeout(pushT); if (room) pushT = setTimeout(pushRoom, 700); }
 function pushRoom() {                        // send whatever differs between this screen and the group's copy
@@ -1138,30 +1313,31 @@ function pullRoom(full) {                    // make this screen match the group
   if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.some(p => p.me) ? next.map(p => [p.x, p.y]) : []); pushRoom(); }   // someone still to add themselves gets the whole city, not a close-up of the first pin
   else if (moved || resend) changed(true);
   else if (renamed) { renderPanel(); renderPins(); }
-  if (joined) toast(joined + ' is on the map');
+  if (joined) toast(tr('{n} is on the map', { n: joined }));
 }
 function setLive(status) { if (room) { room.status = status; renderLive(); } }
 function renderLive() {
   $('live').hidden = !LIVE_DB || (state.example && !room); if (!LIVE_DB) return;
   $('live-start').hidden = !!room; $('live-on').hidden = !room; if (!room) $('live-link').hidden = true;
-  $('live-hint').textContent = room ? 'Anyone with the link can add themselves.' + (room.born ? ' It works until ' + fmtEnd(room.born + TTL) + ', then the pins are deleted.' : '') : 'One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.';
-  if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? 'Live group' : room.status === 'offline' ? 'Reconnecting…' : 'Connecting…'; }
-  $('clear').textContent = room ? 'Leave group' : 'Start fresh';
+  $('live-hint').textContent = room ? tr('Anyone with the link can add themselves.') + (room.born ? tr(' It works until {t}, then the pins are deleted.', { t: fmtEnd(room.born + TTL) }) : '') : tr('One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.');
+  if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? tr('Live group') : room.status === 'offline' ? tr('Reconnecting…') : tr('Connecting…'); }
+  $('clear').textContent = room ? tr('Leave group') : tr('Start fresh');
   const joining = app.classList.contains('joining');
-  searchEl.placeholder = joining ? 'Search a street, alley, building or address' : room ? 'Add someone else: street, alley, building' : 'Add a friend: street, alley, building, address';
-  $('hint').textContent = joining ? 'Or tap the map. A nearby corner is fine if you would rather not mark your exact home.' : 'Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.';
+  searchEl.placeholder = joining ? tr('Search a street, alley, building or address') : room ? tr('Add someone else: street, alley, building') : tr('Add a friend: street, alley, building, address');
+  $('hint').textContent = joining ? tr('Or tap the map. A nearby corner is fine if you would rather not mark your exact home.') : tr('Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.');
 }
 function renderJoin() {                      // the first step for anyone in a group who has not put themselves on the map yet
   const others = state.people, on = !!room && room.shown && !others.some(p => p.me) && others.length < MAX_PEOPLE;
   app.classList.toggle('joining', on); $('join').hidden = !on; if (!on) return;
   const names = others.slice(0, 3).map(p => p.name), more = others.length - names.length;
-  $('join-sub').textContent = !others.length ? 'You are the first one here. Add yourself, then invite the group.'
-    : (more > 0 ? names.join(', ') + ' and ' + more + ' more' : names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0]) + (others.length > 1 ? ' are' : ' is') + ' on the map. The meeting place updates as people join.';
+  const list = more > 0 ? tr('{list} and {n} more', { list: names.join(', '), n: more }) : names.length > 1 ? names.slice(0, -1).join(', ') + tr(' and ') + names[names.length - 1] : names[0];
+  $('join-sub').textContent = !others.length ? tr('You are the first one here. Add yourself, then invite the group.')
+    : tr(others.length > 1 ? '{names} are on the map. The meeting place updates as people join.' : '{names} is on the map. The meeting place updates as people join.', { names: list });
   const nameEl = $('join-name'); if (!room.named) { room.named = true; if (!nameEl.value) nameEl.value = cleanName(mem.get()); }
-  const home = homeGet(), saved = $('join-saved'); saved.hidden = !home; if (home) saved.textContent = 'Add me from ' + (home.w || 'my last place');
+  const home = homeGet(), saved = $('join-saved'); saved.hidden = !home; if (home) saved.textContent = tr('Add me from {w}', { w: home.w || tr('my last place') });
   $('join-here').hidden = !(navigator.geolocation && window.isSecureContext); $('join-ways').hidden = saved.hidden && $('join-here').hidden;
   const claim = $('join-claim'); claim.hidden = !others.length; claim.textContent = '';
-  if (others.length) { claim.append('Already on the map?'); for (const p of others) { const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn'; b.textContent = 'I am ' + p.name; b.addEventListener('click', () => { p.me = p.mine = true; changed(true); toast('Got it. ' + p.name + ' is you.'); }); claim.append(b); } }
+  if (others.length) { claim.append(tr('Already on the map?')); for (const p of others) { const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn'; b.textContent = tr('I am {n}', { n: p.name }); b.addEventListener('click', () => { p.me = p.mine = true; changed(true); toast(tr('Got it. {n} is you.', { n: p.name })); }); claim.append(b); } }
 }
 function addSelf(x, y, label) {
   const p = addPerson(x, y, '', label ? { label } : {}); if (!p) return;
@@ -1171,10 +1347,10 @@ $('join-name').maxLength = MAX_NAME;
 $('join-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchEl.focus(); } });
 $('join-saved').addEventListener('click', () => { const h = homeGet(); if (h) addSelf(h.x, h.y, h.w); });
 $('join-here').addEventListener('click', () => {
-  const b = $('join-here'); b.disabled = true; b.textContent = 'Finding you…';
-  const done = () => { b.disabled = false; b.textContent = 'Use where I am now'; };
+  const b = $('join-here'); b.disabled = true; b.textContent = tr('Finding you…');
+  const done = () => { b.disabled = false; b.textContent = tr('Use where I am now'); };
   navigator.geolocation.getCurrentPosition(pos => { done(); if (!room) return; const xy = toXY(pos.coords.latitude, pos.coords.longitude); addSelf(xy[0], xy[1]); },
-    () => { done(); toast('Could not get your location. Search for a place or tap the map instead.'); }, { timeout: 12000, maximumAge: 60000 });
+    () => { done(); toast(tr('Could not get your location. Search for a place or tap the map instead.')); }, { timeout: 12000, maximumAge: 60000 });
 });
 $('intro-live').hidden = !LIVE_DB;
 $('intro-live').addEventListener('click', () => startRoom());
@@ -1190,7 +1366,7 @@ function openStream() {
   es.onerror = () => { if (room !== r) return; setLive('offline'); if (es.readyState === 2) { es.close(); checkEnded(r); } };
 }
 const fmtEnd = t => { const d = new Date(t), n = new Date(), day = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 864e5);
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + (day === 0 ? ' today' : day === 1 ? ' tomorrow' : ''); };
+  return d.toLocaleTimeString(LANG === 'vi' ? 'vi-VN' : [], { hour: 'numeric', minute: '2-digit' }) + (day === 0 ? tr(' today') : day === 1 ? tr(' tomorrow') : ''); };
 const stamp = id => fetch(bornUrl(id), { method: 'PUT', body: '{".sv":"timestamp"}' }).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); });
 function setBorn(r, v) {                     // remember when the group was started and leave it when its day is up
   if (room !== r || !(v > 0)) return; r.born = v; clearTimeout(r.endT);
@@ -1214,7 +1390,7 @@ function checkEnded(r) {                     // the stream was closed on us: fin
 }
 function endRoom() {
   if (!room) return; const had = state.people.length; leaveRoom();
-  toast(had ? 'This group link has ended. Links last a day. Your copy of the pins stays here.' : 'This group link has ended. Links last a day. Start a new one to plan again.');
+  toast(had ? tr('This group link has ended. Links last a day. Your copy of the pins stays here.') : tr('This group link has ended. Links last a day. Start a new one to plan again.'));
   if (!had) { loadExample(); renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); if (state.people.length >= 2) run(true); }
 }
 function sweep() {                           // delete groups whose day is up; the database only lists the ones that have ended
@@ -1242,25 +1418,25 @@ function startRoom() {                       // turn what is on screen into a gr
   r.q = stamp(r.id).catch(() => {});
   send('PUT', '', r.doc);
   changed(true);
-  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast('Could not start a live group. Check the connection and try again.'); return; } openStream(); readBorn(r, false); copyInvite(true).then(ok => { if (ok && room === r) toast('Group started. The invite is copied: paste it in your group chat.'); }); });
+  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast(tr('Could not start a live group. Check the connection and try again.')); return; } openStream(); readBorn(r, false); copyInvite(true).then(ok => { if (ok && room === r) toast(tr('Group started. The invite is copied: paste it in your group chat.')); }); });
 }
 const inviteLink = () => location.origin + location.pathname + location.search + '#g-' + room.id;
-const INVITE = 'Add your pin so we can find the fairest place to meet.';
+const INVITE = () => tr('Add your pin so we can find the fairest place to meet.');   // written in the sender's language
 async function copyInvite(quiet) {           // true when the invite (a line of text and the link) reached the clipboard
   if (!room) return false; const b = $('live-copy'), link = inviteLink();
-  try { await navigator.clipboard.writeText(INVITE + ' ' + link); b.textContent = 'Invite copied'; setTimeout(() => { b.textContent = 'Invite the group'; }, 1800); return true; }
+  try { await navigator.clipboard.writeText(INVITE() + ' ' + link); b.textContent = tr('Invite copied'); setTimeout(() => { b.textContent = tr('Invite the group'); }, 1800); return true; }
   catch (e) { if (!quiet) { const box = $('live-link'); box.value = link; box.hidden = false; box.focus(); box.select(); } return false; }
 }
 async function invite() {                    // on a phone, hand the invite to the share sheet (Messenger, Zalo…); elsewhere copy it
   if (!room) return;
-  if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: 'Hanoi Midpoint', text: INVITE, url: inviteLink() }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: 'Hanoi Midpoint', text: INVITE(), url: inviteLink() }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
   copyInvite(false);
 }
 $('live-start').addEventListener('click', startRoom);
 $('live-copy').addEventListener('click', invite);
 function route(hash) {                       // what a link holds: 'room', 'pins' or nothing usable
   const m = /^#?g-([0-9a-z]{16})$/.exec(hash || '');
-  if (m) { if (!LIVE_DB) { toast('That is a live group link. It only works on the hosted site.'); return ''; } if (!room || room.id !== m[1]) joinRoom(m[1]); return 'room'; }
+  if (m) { if (!LIVE_DB) { toast(tr('That is a live group link. It only works on the hosted site.')); return ''; } if (!room || room.id !== m[1]) joinRoom(m[1]); return 'room'; }
   if (!parseHash(hash)) return '';
   if (room) leaveRoom(true);
   return loadHash(hash) ? 'pins' : '';
@@ -1286,13 +1462,13 @@ function start() {
     fetch(PLACES_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(p => { IX = decodePlaces(p); if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender(); }).catch(err => { console.error(err); });
   }).catch(err => {
     console.error(err); if (G) return;
-    const d = document.createElement('div'), b = document.createElement('b'), again = document.createElement('button'); b.textContent = 'The Hanoi map did not load'; again.type = 'button'; again.className = 'btn'; again.textContent = 'Try again';
-    again.addEventListener('click', () => { l.textContent = ''; const w = document.createElement('div'), t = document.createElement('b'); t.textContent = 'Loading Hanoi\'s roads'; w.append(t); l.append(w); start(); });
-    d.append(b, 'Check the connection, then try again.', document.createElement('br'), again); l.textContent = ''; l.append(d);
+    const d = document.createElement('div'), b = document.createElement('b'), again = document.createElement('button'); b.textContent = tr('The Hanoi map did not load'); again.type = 'button'; again.className = 'btn'; again.textContent = tr('Try again');
+    again.addEventListener('click', () => { l.textContent = ''; const w = document.createElement('div'), t = document.createElement('b'); t.textContent = tr('Loading Hanoi\'s roads'); w.append(t); l.append(w); start(); });
+    d.append(b, tr('Check the connection, then try again.'), document.createElement('br'), again); l.textContent = ''; l.append(d);
   });
 }
 start();
-window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, renderJoin, addSelf, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
+window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, setLang, get lang() { return LANG; }, VI, renderJoin, addSelf, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
 })();
 </script>
 

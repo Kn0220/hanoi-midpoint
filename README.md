@@ -7,6 +7,7 @@ Open it: https://kn0220.github.io/hanoi-midpoint/
 - Tap the map, or search a street, alley, building or address, once per friend.
 - "Fairest" makes the longest ride as short as possible; "Least total" makes everyone's travel added together as small as possible.
 - Everything runs in the browser. Ride times are off-peak estimates from road type and distance, with no live traffic.
+- Vietnamese or English: the VI / EN switch is at the top. The page starts in Vietnamese when the browser lists Vietnamese among its languages, and remembers the choice in that browser.
 
 ## Files
 
@@ -32,6 +33,10 @@ This site is built with its database address set, so live groups are on. To poin
     python3 tools/site.py src . https://<your-database-address>
 
 `tools/mockdb.py <port> <lifetime in ms>` is a local stand-in for the database that enforces the same rules, for testing with a short lifetime.
+
+## Languages
+
+English sentences are written in `src/index.html`; the Vietnamese for each one is in the `VI` table near the top of its script, looked up by the English sentence. A sentence with no Vietnamese line is shown in English. Names, the copied plan and the invite line are written in the language of the person who sends them.
 
 ## Link preview
 

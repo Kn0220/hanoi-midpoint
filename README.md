@@ -21,6 +21,8 @@ Open it: https://kn0220.github.io/hanoi-midpoint/
 
 With a database address set, the page shows "Plan together with a live link". One person starts a group and sends the link; everyone who opens it adds their own pin and name, and the meeting place updates on every screen. Up to 12 people per group.
 
+Someone who opens a group link is first asked where they are coming from, and their own pin is marked "you". The page remembers their name, their last place and which pin is theirs in that browser only, so next time adding themselves is one tap.
+
 It uses a Firebase Realtime Database through its plain web address, with no sign-in and no key. Anyone who has a group's link can see and change that group's pins, and groups cannot be listed, so a group is as private as its link.
 
 A group lasts one day from the moment it is started. After that the database refuses to show or change it, and its pins are deleted: by the page of the next person who opens the site, and by a daily job (`.github/workflows/sweep.yml`). Only groups that have already ended can be listed or deleted this way. GitHub pauses scheduled jobs in a repository with no activity for 60 days; the job can be turned back on from the Actions tab.

@@ -66,6 +66,17 @@ button { cursor: pointer; }
 .linkbtn:hover { text-decoration: underline; text-underline-offset: 3px; }
 .note { margin: 0; padding: 9px 11px; background: var(--raised); border-radius: var(--r); color: var(--muted); font-size: 12.5px; list-style: none; }
 .block { display: flex; flex-direction: column; gap: 10px; }
+/* first steps: what to do when you arrive (start a plan, or add yourself to a group you were invited to) */
+.intro, .join { display: flex; flex-direction: column; gap: 9px; }
+.intro h2, .join h2 { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.25; text-wrap: balance; }
+.intro p, .join p { margin: 0; color: var(--muted); font-size: 13px; }
+.join .claim { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; }
+.field { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); font-size: 16px; }
+.field:focus { border-color: var(--accent-text); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-text) 22%, transparent); }
+.field::placeholder { color: var(--muted); font-size: 14px; }
+.app.joining .block { display: contents; }
+.app.joining .join { order: -3; }
+.app.joining .search { order: -2; }
 .live { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
 .live .hint { margin: 0; }
 .live-on { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; align-self: stretch; }
@@ -80,7 +91,9 @@ button { cursor: pointer; }
 .person { display: grid; grid-template-columns: 28px 1fr auto 26px; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12.5px; }
 .person .who { min-width: 0; display: flex; flex-direction: column; }
-.person input { width: 100%; border: 0; background: transparent; padding: 0; font-weight: 600; font-size: 14.5px; border-radius: 4px; }
+.person .nm { display: flex; align-items: center; gap: 7px; }
+.you { flex: none; font-size: 11.5px; font-weight: 600; color: var(--accent-text); background: color-mix(in srgb, var(--accent-text) 12%, transparent); border-radius: 4px; padding: 1px 6px; }
+.person input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; padding: 0; font-weight: 600; font-size: 14.5px; border-radius: 4px; }
 .person .where { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .person .bar { height: 4px; border-radius: 2px; background: var(--raised); margin-top: 7px; overflow: hidden; }
 .person .bar i { display: block; height: 100%; border-radius: 2px; transition: width .35s ease; }
@@ -213,6 +226,15 @@ button { cursor: pointer; }
       </div>
     </div>
     <div class="scroll pad" id="scroll">
+      <div class="intro" id="intro" hidden>
+        <h2>Where should we meet?</h2>
+        <p>Everyone adds where they are coming from. You get the place with the fairest ride for all of you.</p>
+        <div class="actions">
+          <button type="button" class="btn solid" id="intro-live" hidden>Start a group link</button>
+          <button type="button" class="btn" id="intro-self">Add everyone myself</button>
+        </div>
+        <p>Below is an example with four friends.</p>
+      </div>
       <div class="answer" id="answer" hidden>
         <div class="plate">
           <span class="kick" id="answer-kicker">Meet here</span>
@@ -225,20 +247,29 @@ button { cursor: pointer; }
           <div><dt>Everyone, total</dt><dd id="f-sum"></dd></div>
         </dl>
         <div class="actions">
-          <a class="btn solid" id="gmaps" target="_blank" rel="noopener">Open in Google Maps</a>
+          <a class="btn solid" id="gmaps" target="_blank" rel="noopener">Directions in Google Maps</a>
           <button type="button" class="btn" id="copy">Copy plan for the group chat</button>
         </div>
         <textarea id="plan" class="plan" rows="7" readonly hidden aria-label="Plan text. Copy it from here."></textarea>
       </div>
       <div class="block">
+        <div class="join" id="join" hidden>
+          <h2>Where are you coming from?</h2>
+          <p id="join-sub"></p>
+          <input class="field" id="join-name" type="text" autocomplete="off" placeholder="Your name" aria-label="Your name">
+          <div class="actions" id="join-ways">
+            <button type="button" class="btn solid" id="join-saved" hidden></button>
+            <button type="button" class="btn" id="join-here" hidden>Use where I am now</button>
+          </div>
+          <p class="claim" id="join-claim" hidden></p>
+        </div>
         <div class="row-between"><span class="label" id="people-label">Who's coming</span><button type="button" class="linkbtn" id="clear">Start fresh</button></div>
         <div class="live" id="live" hidden>
           <button type="button" class="btn" id="live-start">Plan together with a live link</button>
-          <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy">Copy invite link</button></div>
+          <div class="live-on" id="live-on" hidden><b><i class="live-dot" id="live-dot"></i><span id="live-text">Live group</span></b><button type="button" class="btn solid" id="live-copy">Invite the group</button></div>
           <input class="plan" id="live-link" readonly hidden aria-label="Invite link. Copy it from here.">
           <p class="hint" id="live-hint"></p>
         </div>
-        <p class="note" id="example-note" hidden>Example group. Tap <b>Start fresh</b>, then tap the map once for each friend.</p>
         <ul class="people" id="people" aria-labelledby="people-label"></ul>
         <div class="search">
           <input id="search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Add a friend: street, alley, building, address" aria-label="Add a friend by street, alley, building or address">
@@ -517,8 +548,10 @@ function addPerson(x, y, name, opts) {       // returns the person, or null with
   opts = opts || {};
   if (state.people.length >= MAX_PEOPLE) { if (!opts.quiet) toast('Up to ' + MAX_PEOPLE + ' friends at a time'); return null; }
   const used = new Set(state.people.map(p => p.color));
-  const mine = room && !opts.remote ? cleanName(mem.get()) : '';      // in a live group, a pin you add starts with the name you used last time
-  const p = { id: state.nextId++, name: cleanName(name || '') || (mine && !state.people.some(q => q.name === mine) ? mine : '') || freeName(), x, y, v: -1, snapD: 0, color: (opts.color && !used.has(opts.color) ? opts.color : '') || COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null, mine: !!room && !opts.remote };
+  const me = !!room && !opts.remote && !state.people.some(q => q.me);   // in a live group, the first pin added on this device is this person's own
+  const typed = me ? cleanName($('join-name').value) : '', last = me ? cleanName(mem.get()) : '';   // it takes the name typed in the join step, or the one used last time
+  if (typed) mem.set(typed);
+  const p = { id: state.nextId++, me, name: cleanName(name || '') || typed || (last && !state.people.some(q => q.name === last) ? last : '') || freeName(), x, y, v: -1, snapD: 0, color: (opts.color && !used.has(opts.color) ? opts.color : '') || COLORS.find(c => !used.has(c)) || COLORS[0], where: '', label: opts.label || '', run: null, mine: !!room && !opts.remote };
   if (typeof x !== 'number' || typeof y !== 'number' || !inBounds(x, y) || !snap(p)) { if (!opts.quiet) toast('That is outside the mapped part of Hanoi'); return null; }
   state.people.push(p); return p;
 }
@@ -548,10 +581,12 @@ function renderPanel() {
     const who = document.createElement('div'); who.className = 'who';
     const inp = document.createElement('input'); inp.id = 'name-' + p.id; inp.dataset.pid = p.id; inp.value = p.name; inp.maxLength = MAX_NAME; inp.setAttribute('aria-label', 'Name'); inp.autocomplete = 'off';
     inp.addEventListener('input', () => { p.name = inp.value; dot.textContent = initial(p); renderPins(); writeHash(); pushSoon(); });
-    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } if (p.mine && !/^Friend \d+$/.test(c)) mem.set(c); pushRoom(); });
+    inp.addEventListener('blur', () => { const c = cleanName(inp.value) || freeName(); if (c !== p.name || c !== inp.value) { p.name = c; inp.value = c; dot.textContent = initial(p); renderPins(); writeHash(); } if (p.me && !/^Friend \d+$/.test(c)) mem.set(c); pushRoom(); });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
     const wh = document.createElement('span'); wh.className = 'where'; wh.textContent = p.where; wh.title = p.where;
-    who.append(inp, wh);
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.append(inp);
+    if (p.me) { const y = document.createElement('span'); y.className = 'you'; y.textContent = 'you'; nm.append(y); }
+    who.append(nm, wh);
     if (times) { const bar = document.createElement('div'); bar.className = 'bar'; const f = document.createElement('i'); f.style.background = p.color; f.style.width = (tmax > 0 ? Math.max(3, times[i] / tmax * 100) : 3) + '%'; bar.append(f); who.append(bar); }
     const trip = document.createElement('div'); trip.className = 'trip' + (i === longest && state.people.length > 1 && tmax > 0 ? ' long' : '');
     if (times) { const b = document.createElement('b'); b.textContent = fmtMin(times[i]); trip.append(b, fmtKm(res.paths[i].metres)); }
@@ -560,15 +595,15 @@ function renderPanel() {
     li.append(dot, who, trip, x); ul.append(li);
   });
   if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
-  $('example-note').hidden = !state.example;
+  $('intro').hidden = !state.example || !!room; renderJoin();
   $('clear').hidden = !state.people.length && !room; renderLive();
-  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? 'Nobody yet. Tap the map where you are coming from, or search below.' : 'Opening the group…') : 'Nobody yet. Tap the map where each friend is coming from, or search below.'; ul.append(li); }
+  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? 'Nobody is on the map yet.' : 'Opening the group…') : 'Nobody yet. Tap the map where each friend is coming from, or search below.'; ul.append(li); }
   const go = $('go'); go.disabled = state.people.length < 2; go.classList.toggle('stale', !res && state.people.length >= 2);
-  go.textContent = state.people.length < 2 ? (state.people.length ? 'Add one more friend' : 'Add at least two friends') : res ? 'Replay the search' : 'Find the spot';
+  go.textContent = state.people.length < 2 ? (room ? (state.people.length ? 'Waiting for one more person' : 'Waiting for the first two people') : state.people.length ? 'Add one more friend' : 'Add at least two friends') : res ? 'Replay the search' : 'Find the spot';
   $('answer').hidden = $('answer-more').hidden = !times;
   if (!times) return;
   const t = res.target;
-  $('answer-kicker').textContent = t.kind === 'venue' ? 'Meet here' : 'Exact midpoint';
+  $('answer-kicker').textContent = t.kind === 'venue' ? (state.example ? 'The example group meets here' : 'Meet here') : 'Exact midpoint';
   $('answer-title').textContent = t.kind === 'venue' ? G.pn[t.i] : 'Near ' + describe(t.v);
   $('answer-sub').textContent = t.kind === 'venue' ? describe(t.v) : 'The point on the roads that best balances everyone';
   const tmin = Math.min(...times);
@@ -589,7 +624,7 @@ function renderPanel() {
   if (res.checked > 0) ty.append('Searching from everyone at once checked ', Object.assign(document.createElement('b'), { textContent: nf(res.checked) }), ' road segments before the searches met. Mapping the whole city for each friend in turn would check ', Object.assign(document.createElement('b'), { textContent: nf(res.oneByOne) }), '.');
   else ty.append('Everyone starts from the same spot, so there was nothing to search.');
 }
-const mapsLink = t => { const ll = toLatLon(t.x, t.y); return 'https://www.google.com/maps/search/?api=1&query=' + ll[0].toFixed(5) + ',' + ll[1].toFixed(5); };
+const mapsLink = t => { const ll = toLatLon(t.x, t.y); return 'https://www.google.com/maps/dir/?api=1&destination=' + ll[0].toFixed(5) + ',' + ll[1].toFixed(5); };   // directions from wherever the person opening it is
 function planText() {
   const res = state.result, t = res.target, times = state.people.map((p, i) => res.runs[i].dist[t.v]);
   const lines = ['Meet at ' + (t.kind === 'venue' ? G.pn[t.i] + ' (' + describe(t.v) + ')' : 'the midpoint near ' + describe(t.v)), mapsLink(t), ''];
@@ -872,7 +907,12 @@ function tapMap(x, y) {
   if (!p) { state.people = keep; lastTap = { t: now, x, y, p: null }; return; }
   state.example = false; lastTap = { t: now, x, y, p, restore };
   changed(true);
-  toast(p.name + ' added at ' + p.where.split(',')[0], 'Undo', () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
+  if (p.me) welcome(p); else toast(p.name + ' added at ' + p.where.split(',')[0], 'Undo', () => { const i = state.people.indexOf(p); if (i >= 0) { state.people.splice(i, 1); changed(true); } });
+}
+function welcome(p) {                        // this device's own pin just went on the map
+  const ask = () => { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } };
+  if (/^Friend \d+$/.test(p.name)) toast('You are on the map. Add your name so the group knows who it is.', 'Add name', ask);
+  else toast('You are on the map, ' + p.name + '. Drag your pin to fine-tune.');
 }
 $('zin').addEventListener('click', () => zoomAt(1.6, W / 2, H / 2));
 $('zout').addEventListener('click', () => zoomAt(1 / 1.6, W / 2, H / 2));
@@ -969,7 +1009,8 @@ function pickHit(i) {
   if (!p) { state.people = keep; return; }
   state.example = false; searchEl.value = ''; hitsEl.hidden = true; hits = []; app.classList.remove('searching');
   changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged();
-  if (narrow.matches) { searchEl.blur(); toast(p.name + ' added. Drag the pin to fine-tune.'); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
+  if (p.me) { if (narrow.matches) searchEl.blur(); welcome(p); }
+  else if (narrow.matches) { searchEl.blur(); toast(p.name + ' added. Drag the pin to fine-tune.'); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
 }
 let searchT = 0;
 searchEl.addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });
@@ -1016,6 +1057,9 @@ function loadExample() { state.people = []; state.example = true; for (const [na
 let room = null, pushT = 0;          // room: { id, doc: { s, pins }, es, ready, shown, applying, hidden, q, status, born }
 let TTL = 864e5;                     // a group lasts one day from the moment it is started; the database rules enforce the same limit
 const mem = { get() { try { return localStorage.getItem('midpoint-name') || ''; } catch (e) { return ''; } }, set(v) { try { localStorage.setItem('midpoint-name', v); } catch (e) {} } };
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const meIn = id => { const m = store.get('midpoint-me'); return m && typeof m === 'object' && m.id === id && typeof m.pin === 'string' ? m.pin : ''; };   // this device's own pin in that group
+const homeGet = () => { const h = store.get('midpoint-home'); if (!h || typeof h !== 'object' || !Number.isFinite(h.la) || !Number.isFinite(h.lo)) return null; const xy = toXY(h.la, h.lo); return inBounds(xy[0], xy[1]) ? { x: xy[0], y: xy[1], w: cleanName(typeof h.w === 'string' ? h.w : '') } : null; };
 const rid = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => (b % 36).toString(36)).join(''); };
 const roomUrl = path => LIVE_DB + '/rooms/' + room.id + (path ? '/' + path : '') + '.json';
 const bornUrl = id => LIVE_DB + '/idx/' + id + '.json';   // idx/<group> holds the time the group was started, set by the database's own clock
@@ -1033,6 +1077,7 @@ function pushRoom() {                        // send whatever differs between th
   for (const p of state.people) {
     if (!p.rid) p.rid = rid(8); seen.add(p.rid);
     const ll = toLatLon(p.x, p.y), la = +ll[0].toFixed(5), lo = +ll[1].toFixed(5), n = cleanName(p.name) || 'Friend', cur = pins[p.rid];
+    if (p.me) { const k = p.rid + la + ',' + lo; if (r.meKey !== k) { r.meKey = k; store.set('midpoint-me', { id: r.id, pin: p.rid }); store.set('midpoint-home', { la, lo, w: p.where.split(',')[0] }); } }   // kept on this device only
     if (!isObj(cur)) { const d = { la, lo, n, t: Date.now(), c: Math.max(0, COLORS.indexOf(p.color)) }; pins[p.rid] = d; send('PUT', 'pins/' + p.rid, d); }
     else { const d = {}; if (!near(cur.la, la) || !near(cur.lo, lo)) { d.la = la; d.lo = lo; } if (cur.n !== n) d.n = n; if (d.la !== undefined || d.n !== undefined) { Object.assign(cur, d); send('PATCH', 'pins/' + p.rid, d); } }
   }
@@ -1057,7 +1102,7 @@ function pullRoom(full) {                    // make this screen match the group
   const have = new Map(state.people.filter(p => p.rid).map(p => [p.rid, p])), before = state.people.length, next = []; state.people = next;
   for (const k of ids) {
     const d = pins[k], xy = toXY(d.la, d.lo), name = cleanName(typeof d.n === 'string' ? d.n : ''); let p = have.get(k);
-    if (!p) { p = addPerson(xy[0], xy[1], name, { quiet: true, remote: true, color: COLORS[d.c] }); if (!p) { r.hidden.add(k); continue; } p.rid = k; moved = true; if (!first) joined = p.name; continue; }
+    if (!p) { p = addPerson(xy[0], xy[1], name, { quiet: true, remote: true, color: COLORS[d.c] }); if (!p) { r.hidden.add(k); continue; } p.rid = k; if (k === meIn(r.id) && !next.some(q => q.me)) p.me = p.mine = true; moved = true; if (!first) joined = p.name; continue; }
     const ll = toLatLon(p.x, p.y);
     if (!near(+ll[0].toFixed(5), d.la) || !near(+ll[1].toFixed(5), d.lo)) { const old = [p.x, p.y, p.label]; p.x = xy[0]; p.y = xy[1]; p.label = ''; if (inBounds(p.x, p.y) && snap(p)) moved = true; else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); } }
     const act = document.activeElement, typing = act && act.dataset && +act.dataset.pid === p.id;
@@ -1068,20 +1113,50 @@ function pullRoom(full) {                    // make this screen match the group
   if (resend) { r.failed = false; for (const p of have.values()) if (p.mine && !next.includes(p) && next.length < MAX_PEOPLE) next.push(p); }
   if (next.length !== before) moved = true;
   r.applying = false;
-  if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.map(p => [p.x, p.y])); pushRoom(); }
+  if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.some(p => p.me) ? next.map(p => [p.x, p.y]) : []); pushRoom(); }   // someone still to add themselves gets the whole city, not a close-up of the first pin
   else if (moved || resend) changed(true);
   else if (renamed) { renderPanel(); renderPins(); }
   if (joined) toast(joined + ' is on the map');
 }
 function setLive(status) { if (room) { room.status = status; renderLive(); } }
 function renderLive() {
-  $('live').hidden = !LIVE_DB; if (!LIVE_DB) return;
+  $('live').hidden = !LIVE_DB || (state.example && !room); if (!LIVE_DB) return;
   $('live-start').hidden = !!room; $('live-on').hidden = !room; if (!room) $('live-link').hidden = true;
-  $('live-hint').textContent = room ? 'Send the link to the group. Everyone opens it and adds their own pin and name.' + (room.born ? ' The link works until ' + fmtEnd(room.born + TTL) + ', then the pins are deleted.' : '') : 'One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.';
+  $('live-hint').textContent = room ? 'Anyone with the link can add themselves.' + (room.born ? ' It works until ' + fmtEnd(room.born + TTL) + ', then the pins are deleted.' : '') : 'One link for the whole group. Everyone adds their own pin. It lasts a day, then the pins are deleted.';
   if (room) { $('live-dot').dataset.s = room.status; $('live-text').textContent = room.status === 'live' ? 'Live group' : room.status === 'offline' ? 'Reconnecting…' : 'Connecting…'; }
   $('clear').textContent = room ? 'Leave group' : 'Start fresh';
-  searchEl.placeholder = room ? 'Add yourself: street, alley, building, address' : 'Add a friend: street, alley, building, address';
+  const joining = app.classList.contains('joining');
+  searchEl.placeholder = joining ? 'Search a street, alley, building or address' : room ? 'Add someone else: street, alley, building' : 'Add a friend: street, alley, building, address';
+  $('hint').textContent = joining ? 'Or tap the map. A nearby corner is fine if you would rather not mark your exact home.' : 'Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.';
 }
+function renderJoin() {                      // the first step for anyone in a group who has not put themselves on the map yet
+  const others = state.people, on = !!room && room.shown && !others.some(p => p.me) && others.length < MAX_PEOPLE;
+  app.classList.toggle('joining', on); $('join').hidden = !on; if (!on) return;
+  const names = others.slice(0, 3).map(p => p.name), more = others.length - names.length;
+  $('join-sub').textContent = !others.length ? 'You are the first one here. Add yourself, then invite the group.'
+    : (more > 0 ? names.join(', ') + ' and ' + more + ' more' : names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0]) + (others.length > 1 ? ' are' : ' is') + ' on the map. The meeting place updates as people join.';
+  const nameEl = $('join-name'); if (!room.named) { room.named = true; if (!nameEl.value) nameEl.value = cleanName(mem.get()); }
+  const home = homeGet(), saved = $('join-saved'); saved.hidden = !home; if (home) saved.textContent = 'Add me from ' + (home.w || 'my last place');
+  $('join-here').hidden = !(navigator.geolocation && window.isSecureContext); $('join-ways').hidden = saved.hidden && $('join-here').hidden;
+  const claim = $('join-claim'); claim.hidden = !others.length; claim.textContent = '';
+  if (others.length) { claim.append('Already on the map?'); for (const p of others) { const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn'; b.textContent = 'I am ' + p.name; b.addEventListener('click', () => { p.me = p.mine = true; changed(true); toast('Got it. ' + p.name + ' is you.'); }); claim.append(b); } }
+}
+function addSelf(x, y, label) {
+  const p = addPerson(x, y, '', label ? { label } : {}); if (!p) return;
+  changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged(); welcome(p);
+}
+$('join-name').maxLength = MAX_NAME;
+$('join-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchEl.focus(); } });
+$('join-saved').addEventListener('click', () => { const h = homeGet(); if (h) addSelf(h.x, h.y, h.w); });
+$('join-here').addEventListener('click', () => {
+  const b = $('join-here'); b.disabled = true; b.textContent = 'Finding you…';
+  const done = () => { b.disabled = false; b.textContent = 'Use where I am now'; };
+  navigator.geolocation.getCurrentPosition(pos => { done(); if (!room) return; const xy = toXY(pos.coords.latitude, pos.coords.longitude); addSelf(xy[0], xy[1]); },
+    () => { done(); toast('Could not get your location. Search for a place or tap the map instead.'); }, { timeout: 12000, maximumAge: 60000 });
+});
+$('intro-live').hidden = !LIVE_DB;
+$('intro-live').addEventListener('click', () => startRoom());
+$('intro-self').addEventListener('click', () => $('clear').click());
 function openStream() {
   const r = room; if (r.es) r.es.close(); clearTimeout(r.retry); r.asked = false;
   const es = r.es = new EventSource(roomUrl(''));
@@ -1133,7 +1208,7 @@ function joinRoom(id) {
 }
 function leaveRoom(quiet) {
   const r = room; if (!r) return; if (r.es) r.es.close(); clearTimeout(r.retry); clearTimeout(r.endT); clearTimeout(pushT); room = null;
-  for (const p of state.people) { delete p.rid; p.mine = false; }
+  for (const p of state.people) { delete p.rid; p.mine = false; p.me = false; }
   if (!quiet) { renderPanel(); writeHash(); }
 }
 function startRoom() {                       // turn what is on screen into a group and hand out its link
@@ -1145,16 +1220,22 @@ function startRoom() {                       // turn what is on screen into a gr
   r.q = stamp(r.id).catch(() => {});
   send('PUT', '', r.doc);
   changed(true);
-  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast('Could not start a live group. Check the connection and try again.'); return; } openStream(); copyInvite(); readBorn(r, false); });
+  r.q.then(() => { if (room !== r) return; if (r.failed) { leaveRoom(); toast('Could not start a live group. Check the connection and try again.'); return; } openStream(); readBorn(r, false); copyInvite(true).then(ok => { if (ok && room === r) toast('Group started. The invite is copied: paste it in your group chat.'); }); });
 }
 const inviteLink = () => location.origin + location.pathname + location.search + '#g-' + room.id;
-async function copyInvite() {
-  if (!room) return; const b = $('live-copy'), link = inviteLink();
-  try { await navigator.clipboard.writeText(link); b.textContent = 'Link copied'; setTimeout(() => { b.textContent = 'Copy invite link'; }, 1800); }
-  catch (e) { const box = $('live-link'); box.value = link; box.hidden = false; box.focus(); box.select(); }
+const INVITE = 'Add your pin so we can find the fairest place to meet.';
+async function copyInvite(quiet) {           // true when the invite (a line of text and the link) reached the clipboard
+  if (!room) return false; const b = $('live-copy'), link = inviteLink();
+  try { await navigator.clipboard.writeText(INVITE + ' ' + link); b.textContent = 'Invite copied'; setTimeout(() => { b.textContent = 'Invite the group'; }, 1800); return true; }
+  catch (e) { if (!quiet) { const box = $('live-link'); box.value = link; box.hidden = false; box.focus(); box.select(); } return false; }
+}
+async function invite() {                    // on a phone, hand the invite to the share sheet (Messenger, Zalo…); elsewhere copy it
+  if (!room) return;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: 'Hanoi Midpoint', text: INVITE, url: inviteLink() }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  copyInvite(false);
 }
 $('live-start').addEventListener('click', startRoom);
-$('live-copy').addEventListener('click', copyInvite);
+$('live-copy').addEventListener('click', invite);
 function route(hash) {                       // what a link holds: 'room', 'pins' or nothing usable
   const m = /^#?g-([0-9a-z]{16})$/.exec(hash || '');
   if (m) { if (!LIVE_DB) { toast('That is a live group link. It only works on the hosted site.'); return ''; } if (!room || room.id !== m[1]) joinRoom(m[1]); return 'room'; }
@@ -1189,6 +1270,6 @@ function start() {
   });
 }
 start();
-window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
+window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, renderJoin, addSelf, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; } };
 })();
 </script>

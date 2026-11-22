@@ -5,16 +5,16 @@ live_db = sys.argv[3] if len(sys.argv) > 3 else ""
 site_url = sys.argv[4] if len(sys.argv) > 4 else "https://kn0220.github.io/hanoi-midpoint/"  # where the site is served; link previews need full addresses
 about = "Add a pin for each friend and get the fairest place in Hanoi to meet, by real ride time."
 page = open(os.path.join(src, "index.html"), encoding="utf-8").read()
-cut = page.index("</style>") + len("</style>")
-head, body = page[:cut], page[cut:]
 if live_db:
     marker = "const LIVE_DB = '';"
-    assert body.count(marker) == 1, "LIVE_DB marker missing"
-    body = body.replace(marker, "const LIVE_DB = '%s';" % live_db)
+    assert page.count(marker) == 1, "LIVE_DB marker missing"
+    page = page.replace(marker, "const LIVE_DB = '%s';" % live_db)
 DATA = ("hanoi-v3.json", "hanoi-v3-places.json")
 marker = "const PACKED = '';"  # the page then asks for name.json.gz first: the same bytes, squeezed harder than the host does on the way out
-assert body.count(marker) == 1, "PACKED marker missing"
-body = body.replace(marker, "const PACKED = '.gz';")
+assert page.count(marker) == 1, "PACKED marker missing"
+page = page.replace(marker, "const PACKED = '.gz';")
+cut = page.index("</style>") + len("</style>")  # the head ends with the styles; the script that starts the map download sits above them
+head, body = page[:cut], page[cut:]
 icon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B4B9B'/%3E%3Crect x='3' y='3' width='26' height='26' rx='4.5' fill='none' stroke='%23fff' stroke-width='1.4'/%3E%3Cpath d='M16 7.5l2.5 5.3 5.8.7-4.3 4 1.1 5.7-5.1-2.8-5.1 2.8 1.1-5.7-4.3-4 5.8-.7z' fill='%23F7C531'/%3E%3C/svg%3E"
 doc = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'

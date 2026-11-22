@@ -1,0 +1,16 @@
+# Fails a change that makes a first visit heavier or puts something back in the way of the first paint.
+# The limits live in tools/budget.py and only go down.
+name: Start-up budget
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check sizes and start-up rules
+        run: python3 tools/budget.py

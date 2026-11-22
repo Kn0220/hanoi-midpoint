@@ -20,7 +20,140 @@
 <style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Hanoi Midpoint</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<script>
+'use strict';
+/* First thing on the page, ahead of the styles: the road map is by far the slowest part, so its download starts here,
+   and it is unpacked beside the page (in a worker) so the page stays free to be typed in while that happens. */
+const LIVE_DB = 'https://caiduyen-default-rtdb.asia-southeast1.firebasedatabase.app';                 // address of the shared database for live groups; empty where the page cannot reach one
+const PACKED = '.gz';                  // the hosted site sets this to '.gz': copies squeezed harder than the host squeezes them on the way out
+const DATA_URL = 'hanoi-v3.json', PLACES_URL = 'hanoi-v3-places.json';   // the name changes whenever the data does, so a kept copy is never out of date
+const KEEP = 'midpoint-data-3';     // the device's own store for those files, so a small update to the page does not download the map again
+// km/h by road class: motorway, trunk, primary, secondary, tertiary, local street, living street, alley
+const SPEED = { bike: [0, 30, 23, 21, 18, 15, 10, 8], car: [55, 32, 21, 19, 16, 11, 6, 5] };
+function b64() { const t = new Uint8Array(128); for (let i = 0; i < 64; i++) t['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'.charCodeAt(i)] = i; return t; }
+const B64 = b64();
+function nums(s) {                           // whole numbers packed as text: five bits a character, low bits first, sign in the lowest bit
+  const out = new Int32Array(s.length); let n = 0, u = 0, sh = 0;
+  for (let i = 0; i < s.length; i++) { const c = B64[s.charCodeAt(i)]; u |= (c & 31) << sh; if (c & 32) sh += 5; else { out[n++] = (u >>> 1) ^ -(u & 1); u = 0; sh = 0; } }
+  return out.subarray(0, n);
+}
+async function readBody(res, onPart) {       // the whole reply, reporting how far along it is when its size is known
+  const total = res.headers.get('content-encoding') ? 0 : +res.headers.get('content-length') || 0;
+  if (!res.body || !res.body.getReader) return new Uint8Array(await res.arrayBuffer());
+  const rd = res.body.getReader(), parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; if (onPart && total) onPart(got / total); }
+  const all = new Uint8Array(got); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; }
+  return all;
+}
+async function loadData(url, onPart) {      // a data file: from this device's kept copy when there is one, else downloaded (the squeezed copy first) and kept
+  let keep = null, res = null;
+  try { keep = await caches.open(KEEP); res = await keep.match(url) || null; } catch (e) { keep = null; }
+  const kept = !!res;
+  try {
+    if (!res && PACKED && typeof DecompressionStream === 'function') { try { res = await fetch(url + PACKED); if (!res.ok) res = null; } catch (e) { res = null; } }
+    if (!res) { res = await fetch(url); if (!res.ok) throw new Error('HTTP ' + res.status); }
+    const copy = keep && !kept ? res.clone() : null;
+    let bytes = await readBody(res, kept ? null : onPart);
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const d = JSON.parse(new TextDecoder().decode(bytes));
+    if (copy) loadData.saving = keep.put(url, copy).catch(() => {});
+    return d;
+  } catch (err) {
+    if (!kept) throw err;
+    try { await keep.delete(url); } catch (e) {}
+    return loadData(url, onPart);           // the kept copy could not be read: download it again
+  }
+}
+function decodeCore(d) {                     // the city as numbers: roads, their lengths, who connects to whom, the cafés. Needs nothing from the page, so it can run beside it
+  if (d.v !== 3) throw new Error('unexpected map data version');
+  for (const k of ['vx', 'vy', 'ea', 'eb', 'en', 'eg', 'px', 'py', 'pv', 'pc']) d[k] = nums(d[k]);
+  const MY = 111320 / d.q, MX = MY * Math.cos(d.origin[0] * Math.PI / 180);
+  const V = d.vx.length, E = d.ea.length, NC = d.ec.length;
+  const px = new Float32Array(V), py = new Float32Array(V), vflag = new Uint8Array(V);
+  const qx = new Int32Array(V), qy = new Int32Array(V);
+  for (let i = 0, x = 0, y = 0; i < V; i++) { x += d.vx[i]; y += d.vy[i]; qx[i] = x; qy[i] = y; px[i] = x * MX; py[i] = -y * MY; vflag[i] = d.vf.charCodeAt(i) - 48; }
+  const ea = new Int32Array(E), eb = new Int32Array(E), ecls = new Uint8Array(E), eflag = new Uint8Array(E), ename = new Int32Array(E), elen = new Float32Array(E);
+  for (let i = 0, a = 0; i < E; i++) { a += d.ea[i]; ea[i] = a; eb[i] = a + d.eb[i]; eflag[i] = d.ef.charCodeAt(i) - 48; }
+  for (let i = 0, seen = 0; i < E; i++) { const c = d.en[i]; ename[i] = c === 0 ? 0 : c === 1 ? ++seen : seen - (c - 2); }   // 0 no name, 1 a name not used before, else how many names back
+  for (let c = 0, i = 0; c < NC; c++) for (let k = 0; k < d.ec[c]; k++) ecls[i++] = c;
+  // geometry: every edge as a full polyline in metres
+  let total = 0; for (let i = 0, k = 0; i < E; i++) { const n = d.eg[k]; total += n + 2; k += 1 + n * 2; }
+  const goff = new Int32Array(E + 1), gx = new Float32Array(total), gy = new Float32Array(total);
+  const ex0 = new Float32Array(E), ey0 = new Float32Array(E), ex1 = new Float32Array(E), ey1 = new Float32Array(E);
+  for (let i = 0, k = 0, o = 0; i < E; i++) {
+    goff[i] = o; const n = d.eg[k++]; let x = qx[ea[i]], y = qy[ea[i]];
+    gx[o] = px[ea[i]]; gy[o] = py[ea[i]]; o++;
+    for (let j = 0; j < n; j++) { x += d.eg[k++]; y += d.eg[k++]; gx[o] = x * MX; gy[o] = -y * MY; o++; }
+    gx[o] = px[eb[i]]; gy[o] = py[eb[i]]; o++;
+    let L = 0, a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9;
+    for (let j = goff[i]; j < o; j++) { if (j > goff[i]) { const ux = gx[j] - gx[j - 1], uy = gy[j] - gy[j - 1]; L += Math.sqrt(ux * ux + uy * uy); } const X = gx[j], Y = gy[j]; if (X < a0) a0 = X; if (X > a1) a1 = X; if (Y < b0) b0 = Y; if (Y > b1) b1 = Y; }
+    elen[i] = Math.max(L, 1); ex0[i] = a0; ey0[i] = b0; ex1[i] = a1; ey1[i] = b1;
+  }
+  goff[E] = total;
+  // adjacency (CSR). An arc is one direction of travel along an edge.
+  const deg = new Int32Array(V + 1);
+  for (let i = 0; i < E; i++) { deg[ea[i] + 1]++; if (!(eflag[i] & 1)) deg[eb[i] + 1]++; }
+  for (let i = 0; i < V; i++) deg[i + 1] += deg[i];
+  const A = deg[V], arcTo = new Int32Array(A), arcEdge = new Int32Array(A), fill = deg.slice(0, V);
+  for (let i = 0; i < E; i++) { let k = fill[ea[i]]++; arcTo[k] = eb[i]; arcEdge[k] = i; if (!(eflag[i] & 1)) { k = fill[eb[i]]++; arcTo[k] = ea[i]; arcEdge[k] = i; } }
+  const wBike = new Float32Array(E), wCar = new Float32Array(E);
+  for (let i = 0; i < E; i++) {
+    wBike[i] = (eflag[i] & 2) || !SPEED.bike[ecls[i]] ? Infinity : elen[i] / (SPEED.bike[ecls[i]] / 3.6);
+    wCar[i] = (eflag[i] & 4) ? Infinity : elen[i] / (SPEED.car[ecls[i]] / 3.6);
+  }
+  // spatial grids
+  const bx0 = (d.bbox[1] - d.origin[1]) * d.q * MX, bx1 = (d.bbox[3] - d.origin[1]) * d.q * MX, by0 = -(d.bbox[2] - d.origin[0]) * d.q * MY, by1 = -(d.bbox[0] - d.origin[0]) * d.q * MY;
+  const CELL = 400, gw = Math.ceil((bx1 - bx0) / CELL) + 1, gh = Math.ceil((by1 - by0) / CELL) + 1;
+  const cellOf = (x, y) => Math.min(gw - 1, Math.max(0, Math.floor((x - bx0) / CELL))) + gw * Math.min(gh - 1, Math.max(0, Math.floor((y - by0) / CELL)));
+  const vCount = new Int32Array(gw * gh + 1);
+  for (let i = 0; i < V; i++) vCount[cellOf(px[i], py[i]) + 1]++;
+  for (let i = 0; i < gw * gh; i++) vCount[i + 1] += vCount[i];
+  const vCell = new Int32Array(V), vf = vCount.slice(0, gw * gh);
+  for (let i = 0; i < V; i++) vCell[vf[cellOf(px[i], py[i])]++] = i;
+  const eCount = new Int32Array(gw * gh + 1);
+  const span = (i, fn) => { const cx0 = Math.max(0, Math.floor((ex0[i] - bx0) / CELL)), cx1 = Math.min(gw - 1, Math.floor((ex1[i] - bx0) / CELL)), cy0 = Math.max(0, Math.floor((ey0[i] - by0) / CELL)), cy1 = Math.min(gh - 1, Math.floor((ey1[i] - by0) / CELL)); for (let y = cy0; y <= cy1; y++) for (let x = cx0; x <= cx1; x++) fn(x + gw * y); };
+  for (let i = 0; i < E; i++) span(i, c => { eCount[c + 1]++; });
+  for (let i = 0; i < gw * gh; i++) eCount[i + 1] += eCount[i];
+  const eCell = new Int32Array(eCount[gw * gh]), ef = eCount.slice(0, gw * gh);
+  for (let i = 0; i < E; i++) span(i, c => { eCell[ef[c]++] = i; });
+  // venues, areas, map shapes
+  const P = d.pn.length, pox = new Float32Array(P), poy = new Float32Array(P), pk = new Uint8Array(P);
+  for (let i = 0, x = 0, y = 0; i < P; i++) { x += d.px[i]; y += d.py[i]; pox[i] = x * MX; poy[i] = -y * MY; pk[i] = d.pk.charCodeAt(i) - 48; }
+  const pvBike = new Int32Array(P), pvCar = new Int32Array(P); for (let i = 0, v = 0; i < P; i++) { v += d.pv[i]; pvBike[i] = v; pvCar[i] = v + d.pc[i]; }
+  const areas = d.areas.map(p => ({ name: p[0], x: p[1] * MX, y: -p[2] * MY, rank: p[3] }));
+  const lab = a => a.map(w => ({ name: w[0], x: w[1] * MX, y: -w[2] * MY, w: w[3] || 0, alt: w[4] || '' }));
+  return { MX, MY, q: d.q, origin: d.origin, V, E, NC, px, py, vflag, ea, eb, ecls, eflag, ename, elen, goff, gx, gy, ex0, ey0, ex1, ey1,
+    off: deg, arcTo, arcEdge, w: { bike: wBike, car: wCar }, bounds: [bx0, by0, bx1, by1], CELL, gw, gh, vCount, vCell, eCount, eCell,
+    names: d.names, P, pox, poy, pk, pn: d.pn, pvBike, pvCar, areas, wlabels: lab(d.wlabels), glabels: lab(d.glabels),
+    raw: { water: d.water, rivers: d.rivers, rk: d.rk, green: d.green, rail: d.rail, runway: d.runway } };
+}
+const EARLY = { part: 0, onPart: null, dataAt: 0, map: null };
+EARLY.load = () => {                         // the decoded city, from a worker when the browser allows one, else worked out here
+  const url = new URL(DATA_URL, document.baseURI).href, part = f => { EARLY.part = f; if (EARLY.onPart) EARLY.onPart(f); };
+  const here = () => loadData(url, part).then(d => { EARLY.dataAt = performance.now(); const core = decodeCore(d); core.ms = performance.now() - EARLY.dataAt; return core; });
+  return new Promise(done => {
+    let w, src;
+    try {
+      src = URL.createObjectURL(new Blob(['"use strict";\nconst KEEP = ' + JSON.stringify(KEEP) + ', PACKED = ' + JSON.stringify(PACKED) + ', SPEED = ' + JSON.stringify(SPEED) + ', B64 = (' + b64 + ')();\n' + nums + '\n' + readBody + '\n' + loadData + '\n' + decodeCore + '\n',
+        'onmessage = async e => { try { const d = await loadData(e.data, f => postMessage({ part: f })); postMessage({ data: 1 }); const t0 = performance.now(), core = decodeCore(d); core.ms = performance.now() - t0;',
+        ' const bufs = new Set(); for (const v of [...Object.values(core), core.w.bike, core.w.car]) if (ArrayBuffer.isView(v)) bufs.add(v.buffer); postMessage({ core }, [...bufs]); await loadData.saving; }',
+        ' catch (err) { postMessage({ failed: String(err) }); } close(); };'], { type: 'text/javascript' }));
+      w = new Worker(src);
+    } catch (e) { done(here()); return; }
+    let over = false; const fall = () => { if (over) return; over = true; try { w.terminate(); } catch (e) {} done(here()); };   // anything wrong beside the page: do the same work on it
+    w.onmessage = e => { const m = e.data; if (m.part !== undefined) part(m.part); else if (m.data) EARLY.dataAt = performance.now(); else if (m.core) { over = true; done(m.core); } else fall(); };
+    w.onerror = fall; w.postMessage(url);
+    setTimeout(() => { try { URL.revokeObjectURL(src); } catch (e) {} }, 30000);
+  });
+};
+EARLY.map = EARLY.load(); EARLY.map.catch(() => {});   // the page reports a failed load itself, further down
+{
+  const add = (rel, href) => { const l = document.createElement('link'); l.rel = rel; l.href = href; if (rel === 'preconnect') l.crossOrigin = 'anonymous'; document.head.appendChild(l); };
+  add('preconnect', 'https://fonts.gstatic.com');   // the lettering arrives when it arrives: put in this way, the page is drawn without waiting for it
+  add('stylesheet', 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+  if (LIVE_DB && /^#g-[0-9a-z]{16}$/.test(location.hash)) add('preconnect', LIVE_DB);   // a group link: get the line to the group open as well
+}
+</script>
 <style>
 /* Layout: one-screen tool. The map is the stage; one panel (left on desktop, below on phones) holds the answer, the people and the Find action.
    Look: the answer is set as a Hanoi street-name plate (blue enamel, white keyline, condensed capitals). Everything around it stays quiet. */
@@ -239,7 +372,7 @@ button { cursor: pointer; }
 </head>
 <body>
 
-<div class="app" id="app">
+<div class="app joining" id="app">
   <section class="panel" aria-label="Plan" data-t="aria-label">
     <div class="head pad">
       <div class="brand"><h1>Hanoi Midpoint</h1><div class="seg lang" role="group" aria-label="Language"><button type="button" id="lang-vi" lang="vi" aria-label="Tiếng Việt" aria-pressed="false">VI</button><button type="button" id="lang-en" lang="en" aria-label="English" aria-pressed="true">EN</button></div></div>
@@ -274,7 +407,7 @@ button { cursor: pointer; }
         </div>
       </div>
       <div class="block">
-        <div class="join" id="join" hidden>
+        <div class="join" id="join">
           <h2 data-t>Where are you coming from?</h2>
           <p id="join-sub"></p>
           <input class="field" id="join-name" type="text" autocomplete="off" placeholder="Your name" aria-label="Your name" data-t="placeholder aria-label">
@@ -334,18 +467,13 @@ button { cursor: pointer; }
 <script>
 (() => {
 'use strict';
-const DATA_URL = 'hanoi-v3.json', PLACES_URL = 'hanoi-v3-places.json';   // the name changes whenever the data does, so a kept copy is never out of date
-const PACKED = '.gz';                  // the hosted site sets this to '.gz': copies squeezed harder than the host squeezes them on the way out
-const KEEP = 'midpoint-data-3';     // the device's own store for those files, so a small update to the page does not download the map again
 const LEAN = !!(navigator.connection && navigator.connection.saveData);   // the phone asked sites to go easy on data
-const LIVE_DB = 'https://caiduyen-default-rtdb.asia-southeast1.firebasedatabase.app';                 // address of the shared database for live groups; empty where the page cannot reach one
 const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E', '#A0623B', '#4C5FD5', '#B03A8C', '#5F7285'];
 const MAX_PEOPLE = 12, MAX_NAME = 18, SNAP_LIMIT = 1500;
-// km/h by road class: motorway, trunk, primary, secondary, tertiary, local street, living street, alley
-const SPEED = { bike: [0, 30, 23, 21, 18, 15, 10, 8], car: [55, 32, 21, 19, 16, 11, 6, 5] };
 const EXAMPLE = [['Minh', 21.0362, 105.7906], ['Linh', 20.9716, 105.7788], ['Huy', 21.0477, 105.8889], ['Trang', 21.0637, 105.8272]];
 const KIND_LABEL = ['Area', 'Homes', 'School', 'Health', 'Shop', 'Transit', 'Sight', 'Address', 'Place'];
 const $ = id => document.getElementById(id);
+const marked = new Set(), mark = n => { if (marked.has(n)) return; marked.add(n); try { performance.mark('mp-' + n); } catch (e) {} };   // first time only: data (map downloaded), map (drawn), typeable (the join step can be used), group (friends' pins shown), answer
 const app = $('app'), stage = $('stage'), base = $('base'), over = $('over'), glow = $('glow'), pinsEl = $('pins');
 const bctx = base.getContext('2d'), octx = over.getContext('2d'), gctx = glow.getContext('2d');
 const narrow = matchMedia('(max-width: 760px)');
@@ -479,6 +607,7 @@ const VI = {
   'Or tap the map. A nearby corner is fine if you would rather not mark your exact home.': 'Hoặc chạm vào bản đồ. Chọn một góc phố gần đó cũng được nếu bạn không muốn đánh dấu đúng nhà mình.',
   'Already on the map?': 'Đã có trên bản đồ rồi?',
   'Finding you…': 'Đang tìm vị trí của bạn…',
+  'Adding you once the map is here…': 'Sẽ thêm bạn khi bản đồ tải xong…',
   'Could not get your location. Search for a place or tap the map instead.': 'Không lấy được vị trí của bạn. Hãy tìm địa điểm hoặc chạm vào bản đồ.',
   'This group link has ended. Links last a day. Your copy of the pins stays here.': 'Link nhóm này đã hết hạn. Link chỉ dùng được một ngày. Bản sao các ghim vẫn ở lại trên máy bạn.',
   'This group link has ended. Links last a day. Start a new one to plan again.': 'Link nhóm này đã hết hạn. Link chỉ dùng được một ngày. Tạo link mới để lên kế hoạch lại.',
@@ -527,7 +656,7 @@ function applyLang() {
 }
 function setLang(l) {
   LANG = l === 'vi' ? 'vi' : 'en'; try { localStorage.setItem('midpoint-lang', LANG); } catch (e) {}
-  applyLang(); if (!G) return;
+  applyLang(); if (!G) { renderPanel(); return; }
   if (!animating) document.getElementById('chip').hidden = true;
   renderPanel(); renderPins(); renderMarks(); if (!hitsEl.hidden && searchEl.value.trim().length >= 2) doSearch();
 }
@@ -555,79 +684,14 @@ function readTheme() {
 }
 
 /* ------------------------------------------------------------ decode */
-const B64 = new Uint8Array(128); for (let i = 0; i < 64; i++) B64['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'.charCodeAt(i)] = i;
-function nums(s) {                           // whole numbers packed as text: five bits a character, low bits first, sign in the lowest bit
-  const out = new Int32Array(s.length); let n = 0, u = 0, sh = 0;
-  for (let i = 0; i < s.length; i++) { const c = B64[s.charCodeAt(i)]; u |= (c & 31) << sh; if (c & 32) sh += 5; else { out[n++] = (u >>> 1) ^ -(u & 1); u = 0; sh = 0; } }
-  return out.subarray(0, n);
-}
-function decode(d) {
-  if (d.v !== 3) throw new Error('unexpected map data version');
-  for (const k of ['vx', 'vy', 'ea', 'eb', 'en', 'eg', 'px', 'py', 'pv', 'pc']) d[k] = nums(d[k]);
-  const MY = 111320 / d.q, MX = MY * Math.cos(d.origin[0] * Math.PI / 180);
-  const V = d.vx.length, E = d.ea.length, NC = d.ec.length;
-  const px = new Float32Array(V), py = new Float32Array(V), vflag = new Uint8Array(V);
-  const qx = new Int32Array(V), qy = new Int32Array(V);
-  for (let i = 0, x = 0, y = 0; i < V; i++) { x += d.vx[i]; y += d.vy[i]; qx[i] = x; qy[i] = y; px[i] = x * MX; py[i] = -y * MY; vflag[i] = d.vf.charCodeAt(i) - 48; }
-  const ea = new Int32Array(E), eb = new Int32Array(E), ecls = new Uint8Array(E), eflag = new Uint8Array(E), ename = new Int32Array(E), elen = new Float32Array(E);
-  for (let i = 0, a = 0; i < E; i++) { a += d.ea[i]; ea[i] = a; eb[i] = a + d.eb[i]; eflag[i] = d.ef.charCodeAt(i) - 48; }
-  for (let i = 0, seen = 0; i < E; i++) { const c = d.en[i]; ename[i] = c === 0 ? 0 : c === 1 ? ++seen : seen - (c - 2); }   // 0 no name, 1 a name not used before, else how many names back
-  for (let c = 0, i = 0; c < NC; c++) for (let k = 0; k < d.ec[c]; k++) ecls[i++] = c;
-  // geometry: every edge as a full polyline in metres
-  let total = 0; for (let i = 0, k = 0; i < E; i++) { const n = d.eg[k]; total += n + 2; k += 1 + n * 2; }
-  const goff = new Int32Array(E + 1), gx = new Float32Array(total), gy = new Float32Array(total);
-  const ex0 = new Float32Array(E), ey0 = new Float32Array(E), ex1 = new Float32Array(E), ey1 = new Float32Array(E);
-  for (let i = 0, k = 0, o = 0; i < E; i++) {
-    goff[i] = o; const n = d.eg[k++]; let x = qx[ea[i]], y = qy[ea[i]];
-    gx[o] = px[ea[i]]; gy[o] = py[ea[i]]; o++;
-    for (let j = 0; j < n; j++) { x += d.eg[k++]; y += d.eg[k++]; gx[o] = x * MX; gy[o] = -y * MY; o++; }
-    gx[o] = px[eb[i]]; gy[o] = py[eb[i]]; o++;
-    let L = 0, a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9;
-    for (let j = goff[i]; j < o; j++) { if (j > goff[i]) { const ux = gx[j] - gx[j - 1], uy = gy[j] - gy[j - 1]; L += Math.sqrt(ux * ux + uy * uy); } const X = gx[j], Y = gy[j]; if (X < a0) a0 = X; if (X > a1) a1 = X; if (Y < b0) b0 = Y; if (Y > b1) b1 = Y; }
-    elen[i] = Math.max(L, 1); ex0[i] = a0; ey0[i] = b0; ex1[i] = a1; ey1[i] = b1;
-  }
-  goff[E] = total;
-  // adjacency (CSR). An arc is one direction of travel along an edge.
-  const deg = new Int32Array(V + 1);
-  for (let i = 0; i < E; i++) { deg[ea[i] + 1]++; if (!(eflag[i] & 1)) deg[eb[i] + 1]++; }
-  for (let i = 0; i < V; i++) deg[i + 1] += deg[i];
-  const A = deg[V], arcTo = new Int32Array(A), arcEdge = new Int32Array(A), fill = deg.slice(0, V);
-  for (let i = 0; i < E; i++) { let k = fill[ea[i]]++; arcTo[k] = eb[i]; arcEdge[k] = i; if (!(eflag[i] & 1)) { k = fill[eb[i]]++; arcTo[k] = ea[i]; arcEdge[k] = i; } }
-  const wBike = new Float32Array(E), wCar = new Float32Array(E);
-  for (let i = 0; i < E; i++) {
-    wBike[i] = (eflag[i] & 2) || !SPEED.bike[ecls[i]] ? Infinity : elen[i] / (SPEED.bike[ecls[i]] / 3.6);
-    wCar[i] = (eflag[i] & 4) ? Infinity : elen[i] / (SPEED.car[ecls[i]] / 3.6);
-  }
-  // spatial grids
-  const bx0 = (d.bbox[1] - d.origin[1]) * d.q * MX, bx1 = (d.bbox[3] - d.origin[1]) * d.q * MX, by0 = -(d.bbox[2] - d.origin[0]) * d.q * MY, by1 = -(d.bbox[0] - d.origin[0]) * d.q * MY;
-  const CELL = 400, gw = Math.ceil((bx1 - bx0) / CELL) + 1, gh = Math.ceil((by1 - by0) / CELL) + 1;
-  const cellOf = (x, y) => Math.min(gw - 1, Math.max(0, Math.floor((x - bx0) / CELL))) + gw * Math.min(gh - 1, Math.max(0, Math.floor((y - by0) / CELL)));
-  const vCount = new Int32Array(gw * gh + 1);
-  for (let i = 0; i < V; i++) vCount[cellOf(px[i], py[i]) + 1]++;
-  for (let i = 0; i < gw * gh; i++) vCount[i + 1] += vCount[i];
-  const vCell = new Int32Array(V), vf = vCount.slice(0, gw * gh);
-  for (let i = 0; i < V; i++) vCell[vf[cellOf(px[i], py[i])]++] = i;
-  const eCount = new Int32Array(gw * gh + 1);
-  const span = (i, fn) => { const cx0 = Math.max(0, Math.floor((ex0[i] - bx0) / CELL)), cx1 = Math.min(gw - 1, Math.floor((ex1[i] - bx0) / CELL)), cy0 = Math.max(0, Math.floor((ey0[i] - by0) / CELL)), cy1 = Math.min(gh - 1, Math.floor((ey1[i] - by0) / CELL)); for (let y = cy0; y <= cy1; y++) for (let x = cx0; x <= cx1; x++) fn(x + gw * y); };
-  for (let i = 0; i < E; i++) span(i, c => { eCount[c + 1]++; });
-  for (let i = 0; i < gw * gh; i++) eCount[i + 1] += eCount[i];
-  const eCell = new Int32Array(eCount[gw * gh]), ef = eCount.slice(0, gw * gh);
-  for (let i = 0; i < E; i++) span(i, c => { eCell[ef[c]++] = i; });
-  // venues, areas, map shapes
-  const P = d.pn.length, pox = new Float32Array(P), poy = new Float32Array(P), pk = new Uint8Array(P);
-  for (let i = 0, x = 0, y = 0; i < P; i++) { x += d.px[i]; y += d.py[i]; pox[i] = x * MX; poy[i] = -y * MY; pk[i] = d.pk.charCodeAt(i) - 48; }
-  const pvBike = new Int32Array(P), pvCar = new Int32Array(P); for (let i = 0, v = 0; i < P; i++) { v += d.pv[i]; pvBike[i] = v; pvCar[i] = v + d.pc[i]; }
-  const areas = d.areas.map(p => ({ name: p[0], x: p[1] * MX, y: -p[2] * MY, rank: p[3] }));
+function finishMap(c) {                      // the decoded numbers plus what only the page can make: the shapes to draw
+  const { MX, MY } = c, raw = c.raw; delete c.raw;
   const unflat = s => { const a = nums(s), n = a.length / 2, xs = new Float32Array(n), ys = new Float32Array(n); for (let i = 0, x = 0, y = 0; i < n; i++) { x += a[2 * i]; y += a[2 * i + 1]; xs[i] = x * MX; ys[i] = -y * MY; } return { xs, ys }; };
   const shape = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (!u.xs.length) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); } return path; };
   const closed = arr => { const path = new Path2D(); for (const a of arr) { const u = unflat(a); if (u.xs.length < 3) continue; path.moveTo(u.xs[0], u.ys[0]); for (let i = 1; i < u.xs.length; i++) path.lineTo(u.xs[i], u.ys[i]); path.closePath(); } return path; };
-  const lab = a => a.map(w => ({ name: w[0], x: w[1] * MX, y: -w[2] * MY, w: w[3] || 0, alt: w[4] || '' }));
-  return { MX, MY, q: d.q, origin: d.origin, V, E, NC, px, py, vflag, ea, eb, ecls, eflag, ename, elen, goff, gx, gy, ex0, ey0, ex1, ey1,
-    off: deg, arcTo, arcEdge, w: { bike: wBike, car: wCar }, bounds: [bx0, by0, bx1, by1], CELL, gw, gh, vCount, vCell, eCount, eCell,
-    names: d.names, P, pox, poy, pk, pn: d.pn, pvBike, pvCar, pkey: null, areas, akey: null, streets: [], skey: null, wkey: null, gkey: null,
-    water: closed(d.water), rivers: shape(d.rivers.filter((r, i) => d.rk[i] === '1')), canals: shape(d.rivers.filter((r, i) => d.rk[i] !== '1')),
-    green: closed(d.green), rail: shape(d.rail), runway: shape(d.runway), wlabels: lab(d.wlabels), glabels: lab(d.glabels),
-    stamp: new Int32Array(E), stampN: 0, where: new Map() };
+  return Object.assign(c, { pkey: null, akey: null, streets: [], skey: null, wkey: null, gkey: null,
+    water: closed(raw.water), rivers: shape(raw.rivers.filter((r, i) => raw.rk[i] === '1')), canals: shape(raw.rivers.filter((r, i) => raw.rk[i] !== '1')),
+    green: closed(raw.green), rail: shape(raw.rail), runway: shape(raw.runway), stamp: new Int32Array(c.E), stampN: 0, where: new Map() });
 }
 function decodePlaces(d) {
   if (d.v !== 3) throw new Error('unexpected place data version');
@@ -818,7 +882,7 @@ function renderPanel() {
   if (keep) { const el = document.querySelector('[data-pid="' + keep[0] + '"]'); if (el) { el.focus(); try { el.setSelectionRange(keep[1], keep[1]); } catch (e) {} } }
   $('example-note').hidden = !state.example || !!room; renderJoin();
   $('clear').hidden = !state.people.length && !room; renderLive();
-  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.ready ? tr('Nobody is on the map yet.') : tr('Opening the group…')) : tr('Nobody yet. Tap the map where each friend is coming from, or search below.'); ul.append(li); }
+  if (!state.people.length) { const li = document.createElement('li'); li.className = 'note'; li.textContent = room ? (room.shown ? tr('Nobody is on the map yet.') : tr('Opening the group…')) : tr('Nobody yet. Tap the map where each friend is coming from, or search below.'); ul.append(li); }
   const go = $('go'); go.disabled = state.people.length < 2; go.classList.toggle('stale', !res && state.people.length >= 2);
   go.textContent = state.people.length < 2 ? (room ? (state.people.length ? tr('Waiting for one more person') : tr('Waiting for the first two people')) : state.people.length ? tr('Add one more friend') : tr('Add at least two friends')) : res ? tr('Replay the search') : tr('Find the spot');
   $('answer').hidden = $('answer-more').hidden = !times;
@@ -1033,7 +1097,7 @@ function animate() {
   animRaf = requestAnimationFrame(step);
   setTimeout(() => step(performance.now()), T + 250);      // a tab in the background gets no animation frames; still finish with the answer
 }
-function finish() { const r = state.result; rankVenues(r); setTarget(pickTarget(r)); writeHash(); if (userRun) { userRun = false; $('scroll').scrollTo({ top: 0, behavior: 'smooth' }); } }
+function finish() { const r = state.result; rankVenues(r); setTarget(pickTarget(r)); mark('answer'); writeHash(); if (userRun) { userRun = false; $('scroll').scrollTo({ top: 0, behavior: 'smooth' }); } }
 function run(animated, keepView) {
   clearTimeout(autoT); live = false;
   if (!G || state.people.length < 2) return;
@@ -1317,17 +1381,19 @@ function loadHash(hash) {
 function loadExample() { state.people = []; state.example = true; for (const [name, lat, lon] of EXAMPLE) { const xy = toXY(lat, lon); addPerson(xy[0], xy[1], name, { quiet: true }); } }
 
 /* ------------------------------------------------------------ live group: one set of pins shared through a small database (#g-<group>) */
-let room = null, pushT = 0;          // room: { id, doc: { s, pins }, es, ready, shown, applying, hidden, q, status, born }
+let room = null, pushT = 0;          // room: { id, doc: { s, pins }, es, ready, early, shown, applying, hidden, q, status, born }
+let ended = false;                   // the group in the link turned out to be over before the map arrived
 let TTL = 864e5;                     // a group lasts one day from the moment it is started; the database rules enforce the same limit
 const mem = { get() { try { return localStorage.getItem('midpoint-name') || ''; } catch (e) { return ''; } }, set(v) { try { localStorage.setItem('midpoint-name', v); } catch (e) {} } };
 const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 const meIn = id => { const m = store.get('midpoint-me'); return m && typeof m === 'object' && m.id === id && typeof m.pin === 'string' ? m.pin : ''; };   // this device's own pin in that group
-const homeGet = () => { const h = store.get('midpoint-home'); if (!h || typeof h !== 'object' || !Number.isFinite(h.la) || !Number.isFinite(h.lo)) return null; const xy = toXY(h.la, h.lo); return inBounds(xy[0], xy[1]) ? { x: xy[0], y: xy[1], w: cleanName(typeof h.w === 'string' ? h.w : '') } : null; };
+const homeRaw = () => { const h = store.get('midpoint-home'); return h && typeof h === 'object' && Number.isFinite(h.la) && Number.isFinite(h.lo) ? { la: h.la, lo: h.lo, w: cleanName(typeof h.w === 'string' ? h.w : '') } : null; };   // the place this device used last; readable before the map is
+const homeGet = () => { const h = homeRaw(); if (!h) return null; const xy = toXY(h.la, h.lo); return inBounds(xy[0], xy[1]) ? { x: xy[0], y: xy[1], w: h.w } : null; };
 const rid = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => (b % 36).toString(36)).join(''); };
 const roomUrl = path => LIVE_DB + '/rooms/' + room.id + (path ? '/' + path : '') + '.json';
 const bornUrl = id => LIVE_DB + '/idx/' + id + '.json';   // idx/<group> holds the time the group was started, set by the database's own clock
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v), near = (a, b) => Math.abs(a - b) < 2e-6;
-const newRoom = id => ({ id, doc: { s: {}, pins: {} }, es: null, ready: false, shown: false, applying: false, hidden: new Set(), q: Promise.resolve(), status: 'connecting', failed: false, retry: 0, born: 0, endT: 0, refused: 0, adopted: false });
+const newRoom = id => ({ id, doc: { s: {}, pins: {} }, es: null, ready: false, early: false, shown: false, applying: false, hidden: new Set(), q: Promise.resolve(), status: 'connecting', failed: false, retry: 0, born: 0, endT: 0, refused: 0, adopted: false });
 function send(method, path, body, quiet) {   // quiet: an extra the database may refuse without it counting as a failed save
   const r = room, url = roomUrl(path);
   r.q = r.q.then(() => fetch(url, { method, body: body === undefined ? undefined : JSON.stringify(body) })).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); })
@@ -1359,7 +1425,7 @@ function applyEvent(r, path, data, patch) {  // one change from the database, ap
   if (!isObj(r.doc.pins)) r.doc.pins = {}; if (!isObj(r.doc.s)) r.doc.s = {};
 }
 function pullRoom(full) {                    // make this screen match the group's copy; full = the database just sent the whole group
-  const r = room, pins = r.doc.pins, first = !r.shown; r.shown = true; r.applying = true; r.hidden.clear();
+  const r = room, pins = r.doc.pins, first = !r.shown; r.shown = true; r.applying = true; r.hidden.clear(); mark('group');
   let moved = false, renamed = false, joined = '';
   const s = r.doc.s, mode = s.m === 'c' ? 'car' : s.m === 'b' ? 'bike' : state.mode, goal = s.g === 't' ? 'total' : s.g === 'f' ? 'fair' : state.goal;
   if (mode !== state.mode || goal !== state.goal) { const re = mode !== state.mode; state.mode = mode; state.goal = goal; syncSegs(); if (re) resnapAll(); moved = true; }
@@ -1381,7 +1447,7 @@ function pullRoom(full) {                    // make this screen match the group
   if (resend) { r.failed = false; for (const p of have.values()) if (p.mine && !next.includes(p) && next.length < MAX_PEOPLE) next.push(p); }
   if (next.length !== before) moved = true;
   r.applying = false;
-  if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (next.length >= 2) run(true); else fit(next.some(p => p.me) ? next.map(p => [p.x, p.y]) : []); pushRoom(); }   // someone still to add themselves gets the whole city, not a close-up of the first pin
+  if (first) { cancelAnimationFrame(animRaf); animating = false; clearGlow(); state.result = null; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); fit(next.length >= 2 || next.some(p => p.me) ? next.map(p => [p.x, p.y]) : []); if (next.length >= 2) afterPaint(() => firstRun(() => room === r)); pushRoom(); nowReady(); }   // someone still to add themselves gets the whole city, not a close-up of the first pin; the pins are drawn before the search for the place starts
   else if (moved || resend) changed(!(joined && !pinDrag && !pinHold && !app.classList.contains('searching')), true);
   else { if (renamed) { renderPanel(); renderPins(); } if (repick) retarget(true); }
   if (joined) toast(tr('{n} is on the map', { n: joined }));
@@ -1398,18 +1464,37 @@ function renderLive() {
   $('hint').textContent = joining ? tr('Or tap the map. A nearby corner is fine if you would rather not mark your exact home.') : tr('Can\'t find a house? Zoom in and tap it, or paste its coordinates or Plus Code from Google Maps.');
 }
 let namedOnce = false;
-function renderJoin() {                      // the first step for everyone: put yourself on the map
-  const solo = !room && (state.example || !state.people.length), others = solo ? [] : state.people;
-  const on = solo ? !!G : !!room && room.shown && !others.some(p => p.me) && others.length < MAX_PEOPLE;
+const pinsLink = /^#[pq]-[bc][ft]-/.test(location.hash);   // a link that carries its own pins has nobody to add first
+let waitFn = null, waitBtn = '', finding = false;   // what was pressed in the join step before the map (or the group) was ready for it
+const ready = () => !!G && (!room || room.shown);
+function whenReady(fn, btn) { if (ready()) fn(); else { waitFn = fn; waitBtn = btn; renderJoin(); } }
+function nowReady() { if (!waitFn || !ready()) return; const fn = waitFn; waitFn = null; waitBtn = ''; renderJoin(); fn(); }
+const afterPaint = fn => requestAnimationFrame(() => setTimeout(fn, 0));   // let what is on screen be drawn before the next heavy step
+function firstRun(ok) {                      // the first search of a visit, one person's roads at a time, so typing in the join step is never held up for long
+  const p = G && state.people.length >= 2 && state.people.find(p => !p.run || p.run.v !== p.v || p.run.mode !== state.mode);
+  if (p) { p.run = { v: p.v, mode: state.mode, r: dijkstra(p.v, G.w[state.mode]) }; setTimeout(() => firstRun(ok), 0); return; }
+  if (ok() && !state.result && !animating) run(true);
+}
+function renderJoin() {                      // the first step for everyone: put yourself on the map. It is there before the map is; what is pressed early waits for the map
+  const solo = !room && (state.example || !state.people.length);
+  let names, mine;
+  if (room && !room.shown) {                 // the group has answered but its pins are not placed yet: go by its own list
+    const pins = room.doc.pins, ids = Object.keys(pins).filter(k => isObj(pins[k])).sort((a, b) => ((+pins[a].t || 0) - (+pins[b].t || 0)) || (a < b ? -1 : 1));
+    names = ids.map(k => cleanName(typeof pins[k].n === 'string' ? pins[k].n : '') || 'Friend'); mine = ids.includes(meIn(room.id));
+  } else { names = solo ? [] : state.people.map(p => p.name); mine = state.people.some(p => p.me); }
+  const on = room ? !mine && names.length < MAX_PEOPLE : solo && (!!G || !pinsLink);
   app.classList.toggle('joining', on); $('join').hidden = !on; if (!on) return;
-  const names = others.slice(0, 3).map(p => p.name), more = others.length - names.length;
-  const list = more > 0 ? tr('{list} and {n} more', { list: names.join(', '), n: more }) : names.length > 1 ? names.slice(0, -1).join(', ') + tr(' and ') + names[names.length - 1] : names[0];
-  $('join-sub').textContent = solo ? tr('Add yourself, then invite the group or add friends yourself. You get the fairest place to meet for all of you.') : !others.length ? tr('You are the first one here. Add yourself, then invite the group.')
-    : tr(others.length > 1 ? '{names} are on the map. The meeting place updates as people join.' : '{names} is on the map. The meeting place updates as people join.', { names: list });
+  mark('typeable');
+  const first = names.slice(0, 3), more = names.length - first.length;
+  const list = more > 0 ? tr('{list} and {n} more', { list: first.join(', '), n: more }) : first.length > 1 ? first.slice(0, -1).join(', ') + tr(' and ') + first[first.length - 1] : first[0];
+  $('join-sub').textContent = !room ? tr('Add yourself, then invite the group or add friends yourself. You get the fairest place to meet for all of you.') : !room.ready ? tr('Opening the group…') : !names.length ? tr('You are the first one here. Add yourself, then invite the group.')
+    : tr(names.length > 1 ? '{names} are on the map. The meeting place updates as people join.' : '{names} is on the map. The meeting place updates as people join.', { names: list });
   const nameEl = $('join-name'); if (!namedOnce) { namedOnce = true; if (!nameEl.value) nameEl.value = cleanName(mem.get()); }
-  const home = homeGet(), saved = $('join-saved'); saved.hidden = !home; if (home) saved.textContent = tr('Add me from {w}', { w: home.w || tr('my last place') });
-  $('join-here').hidden = !(navigator.geolocation && window.isSecureContext); $('join-here').classList.toggle('solid', !home); $('join-ways').hidden = saved.hidden && $('join-here').hidden;
-  const claim = $('join-claim'); claim.hidden = !others.length; claim.textContent = '';
+  const home = G ? homeGet() : homeRaw(), saved = $('join-saved'), here = $('join-here'), wait = tr('Adding you once the map is here…');
+  saved.hidden = !home; if (home) saved.textContent = waitBtn === 'saved' ? wait : tr('Add me from {w}', { w: home.w || tr('my last place') });
+  here.hidden = !(navigator.geolocation && window.isSecureContext); here.classList.toggle('solid', !home); here.textContent = finding ? tr('Finding you…') : waitBtn === 'here' ? wait : tr('Use where I am now');
+  saved.disabled = here.disabled = finding || !!waitFn; $('join-ways').hidden = saved.hidden && here.hidden;
+  const others = room && room.shown ? state.people : [], claim = $('join-claim'); claim.hidden = !others.length; claim.textContent = '';
   if (others.length) { claim.append(tr('Already on the map?')); for (const p of others) { const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn'; b.textContent = tr('I am {n}', { n: p.name }); b.addEventListener('click', () => { p.me = p.mine = true; changed(true); toast(tr('Got it. {n} is you.', { n: p.name })); }); claim.append(b); } }
 }
 function addSelf(x, y, label) {
@@ -1419,18 +1504,19 @@ function addSelf(x, y, label) {
 }
 $('join-name').maxLength = MAX_NAME;
 $('join-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchEl.focus(); } });
-$('join-saved').addEventListener('click', () => { const h = homeGet(); if (h) addSelf(h.x, h.y, h.w); });
-$('join-here').addEventListener('click', () => {
-  const b = $('join-here'); b.disabled = true; b.textContent = tr('Finding you…');
-  const done = () => { b.disabled = false; b.textContent = tr('Use where I am now'); };
-  navigator.geolocation.getCurrentPosition(pos => { done(); if (!app.classList.contains('joining')) return; const xy = toXY(pos.coords.latitude, pos.coords.longitude); addSelf(xy[0], xy[1]); },
-    () => { done(); toast(tr('Could not get your location. Search for a place or tap the map instead.')); }, { timeout: 12000, maximumAge: 60000 });
+$('join-saved').addEventListener('click', () => whenReady(() => { const h = homeGet(); if (h && app.classList.contains('joining')) addSelf(h.x, h.y, h.w); }, 'saved'));
+$('join-here').addEventListener('click', () => {   // finding the phone takes a few seconds: it runs while the map is still on its way
+  finding = true; renderJoin();
+  navigator.geolocation.getCurrentPosition(pos => { finding = false; renderJoin(); const la = pos.coords.latitude, lo = pos.coords.longitude; whenReady(() => { if (!app.classList.contains('joining')) return; const xy = toXY(la, lo); addSelf(xy[0], xy[1]); }, 'here'); },
+    () => { finding = false; renderJoin(); toast(tr('Could not get your location. Search for a place or tap the map instead.')); }, { timeout: 12000, maximumAge: 60000 });
 });
 function openStream() {
   const r = room; if (r.es) r.es.close(); clearTimeout(r.retry); r.asked = false;
   const es = r.es = new EventSource(roomUrl(''));
   const on = patch => e => { if (room !== r) return; let m; try { m = JSON.parse(e.data); } catch (err) { return; } if (!m || typeof m.path !== 'string') return; if (!r.ready && !patch && m.path === '/' && m.data === null) { endRoom(); return; }   // the link points at nothing: the group has ended and been deleted
-    r.refused = 0; applyEvent(r, m.path, m.data, patch); r.ready = true; r.status = 'live'; pullRoom(!patch && m.path === '/'); renderLive(); if (!r.born && !r.asked) { r.asked = true; readBorn(r, true); } };
+    r.refused = 0; applyEvent(r, m.path, m.data, patch); r.ready = true; r.status = 'live';
+    if (G) pullRoom(!patch && m.path === '/'); else { r.early = true; renderPanel(); }   // no map yet: say who is here now, place the pins when it lands
+    renderLive(); if (!r.born && !r.asked) { r.asked = true; readBorn(r, true); } };
   es.addEventListener('put', on(false)); es.addEventListener('patch', on(true));
   es.addEventListener('cancel', () => { if (room === r) endRoom(); });
   es.onopen = () => { if (room === r && r.ready) setLive('live'); };
@@ -1462,6 +1548,7 @@ function checkEnded(r) {                     // the stream was closed on us: fin
 function endRoom() {
   if (!room) return; const had = state.people.length; leaveRoom();
   toast(had ? tr('This group link has ended. Links last a day. Your copy of the pins stays here.') : tr('This group link has ended. Links last a day. Start a new one to plan again.'));
+  if (!G) { ended = true; return; }       // the map is still on its way: the page starts as it would without a link
   if (!had) { loadExample(); renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); if (state.people.length >= 2) run(true); }
 }
 function sweep() {                           // delete groups whose day is up; the database only lists the ones that have ended
@@ -1473,7 +1560,7 @@ function sweep() {                           // delete groups whose day is up; t
 function joinRoom(id) {
   leaveRoom(true); cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true;
   state.people = []; state.example = false; state.result = null; room = newRoom(id);
-  renderPanel(); renderPins(); renderMarks(); drawOverlay(0); openStream();
+  renderPanel(); if (G) { renderPins(); renderMarks(); drawOverlay(0); } openStream();
 }
 function leaveRoom(quiet) {
   const r = room; if (!r) return; if (r.es) r.es.close(); clearTimeout(r.retry); clearTimeout(r.endT); clearTimeout(pushT); room = null;
@@ -1523,61 +1610,41 @@ new ResizeObserver(resize).observe(stage);
 addEventListener('hashchange', () => { if (!G) return; const h = location.hash.slice(1); if (h === lastHash) return; const how = route(location.hash); if (how) { lastHash = h; clearTimeout(hashT); } if (how === 'pins') { cancelAnimationFrame(animRaf); animating = false; clearGlow(); $('chip').hidden = true; renderPanel(); renderPins(); renderMarks(); drawOverlay(0); if (state.people.length >= 2) run(false); else fit(state.people.map(p => [p.x, p.y])); } });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (G && W >= 8) drawBase(); });
 
-async function readBody(res, onPart) {       // the whole reply, reporting how far along it is when its size is known
-  const total = res.headers.get('content-encoding') ? 0 : +res.headers.get('content-length') || 0;
-  if (!res.body || !res.body.getReader) return new Uint8Array(await res.arrayBuffer());
-  const rd = res.body.getReader(), parts = []; let got = 0;
-  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; if (onPart && total) onPart(got / total); }
-  const all = new Uint8Array(got); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; }
-  return all;
-}
-async function loadData(url, onPart) {      // a data file: from this device's kept copy when there is one, else downloaded (the squeezed copy first) and kept
-  let keep = null, res = null;
-  try { keep = await caches.open(KEEP); res = await keep.match(url) || null; } catch (e) { keep = null; }
-  const kept = !!res;
-  try {
-    if (!res && PACKED && typeof DecompressionStream === 'function') { try { res = await fetch(url + PACKED); if (!res.ok) res = null; } catch (e) { res = null; } }
-    if (!res) { res = await fetch(url); if (!res.ok) throw new Error('HTTP ' + res.status); }
-    const copy = keep && !kept ? res.clone() : null;
-    let bytes = await readBody(res, kept ? null : onPart);
-    if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
-    const d = JSON.parse(new TextDecoder().decode(bytes));
-    if (copy) keep.put(url, copy).catch(() => {});
-    return d;
-  } catch (err) {
-    if (!kept) throw err;
-    try { await keep.delete(url); } catch (e) {}
-    return loadData(url, onPart);           // the kept copy could not be read: download it again
-  }
-}
 function loadBar(f) {
   const box = document.querySelector('#loading > div'); if (!box) return;
   let bar = $('loading-bar'); if (!bar) { const track = document.createElement('i'); track.className = 'bar'; bar = document.createElement('i'); bar.id = 'loading-bar'; track.append(bar); box.append(track); }
   bar.style.width = Math.round(Math.min(1, f) * 100) + '%';
 }
-let placesAsked = false;
+let placesAsked = false, placesRaw = null;
 function wantPlaces() {                      // place names, house numbers and the street list are almost half the map's size again, so they wait until search or a close look needs them
-  if (placesAsked || IX || !G) return; placesAsked = true;
-  loadData(PLACES_URL).then(p => { IX = decodePlaces(p); G.streets = IX.streets; G.skey = null; if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender(); })
-    .catch(err => { console.error(err); setTimeout(() => { placesAsked = false; }, 8000); });
+  if (placesAsked || IX) return; placesAsked = true;
+  loadData(PLACES_URL).then(p => { placesRaw = p; gotPlaces(); }).catch(err => { console.error(err); setTimeout(() => { placesAsked = false; }, 8000); });
+}
+function gotPlaces() {                       // they can arrive before the map does (someone went straight to the search box); they are of use once both are here
+  if (!placesRaw || !G || IX) return;
+  IX = decodePlaces(placesRaw); placesRaw = null; G.streets = IX.streets; G.skey = null; if (searchEl.value.trim().length >= 2) doSearch(); if (W >= 8 && drawn.s >= 0.7 && !animating) fullRender();
 }
 function start() {
-  const l = $('loading'); l.hidden = false;
-  loadData(DATA_URL, loadBar).then(d => {
-    const t0 = performance.now(); G = decode(d); perf.decode = performance.now() - t0; l.hidden = true; resize();
-    const how = route(location.hash); if (!how) loadExample();
-    renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); fullRender();
-    if (how !== 'room' && state.people.length >= 2) run(true);
+  const l = $('loading'); l.hidden = false; EARLY.onPart = loadBar; if (EARLY.part) loadBar(EARLY.part);
+  (EARLY.map || (EARLY.map = EARLY.load())).then(core => {
+    try { performance.mark('mp-data', { startTime: EARLY.dataAt }); } catch (e) {}
+    G = finishMap(core); perf.decode = core.ms; l.hidden = true; resize();
+    const how = ended ? '' : route(location.hash); if (!how) loadExample();
+    renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); fullRender(); mark('map');
+    if (room && room.early) { room.early = false; pullRoom(true); }   // the group answered while the map was downloading
+    else if (how !== 'room' && state.people.length >= 2) afterPaint(() => firstRun(() => true));   // the map is drawn first, then the search for the place
+    gotPlaces(); nowReady();
     setTimeout(sweep, 6000);
     if (document.activeElement === searchEl || searchEl.value.trim().length >= 2) wantPlaces();
     try { caches.keys().then(ks => { for (const k of ks) if (k.startsWith('midpoint-data-') && k !== KEEP) caches.delete(k); }).catch(() => {}); } catch (e) {}
   }).catch(err => {
-    console.error(err); if (G) return;
+    console.error(err); if (G) return; EARLY.map = null;
     const d = document.createElement('div'), b = document.createElement('b'), again = document.createElement('button'); b.textContent = tr('The Hanoi map did not load'); again.type = 'button'; again.className = 'btn'; again.textContent = tr('Try again');
     again.addEventListener('click', () => { l.textContent = ''; const w = document.createElement('div'), t = document.createElement('b'); t.textContent = tr('Loading Hanoi\'s roads'); w.append(t); l.append(w); start(); });
     d.append(b, tr('Check the connection, then try again.'), document.createElement('br'), again); l.textContent = ''; l.append(d);
   });
 }
+if (LIVE_DB && /^#g-[0-9a-z]{16}$/.test(location.hash)) joinRoom(location.hash.slice(3)); else renderPanel();   // a group link reaches for its group now, not after the map
 start();
 window.__midpoint = { state, view, drawn, perf, get G() { return G; }, get IX() { return IX; }, run, solve, changed, addPerson, removePerson, toXY, toLatLon, parseHash, loadHash, hashNow, tapMap, nearestVertex, doSearch, pickHit, lookup, get room() { return room; }, setLang, get lang() { return LANG; }, VI, renderJoin, addSelf, startRoom, leaveRoom, pushRoom, sweep, get ttl() { return TTL; }, set ttl(v) { TTL = v; }, parseLocation, decodePlus, describe, dijkstra, fit, fullRender, get hits() { return hits; }, get animating() { return animating; }, wantPlaces, loadData, loadBar, nums, choose, retarget };
 })();

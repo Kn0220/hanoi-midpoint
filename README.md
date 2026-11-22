@@ -19,6 +19,7 @@ Open it: https://kn0220.github.io/hanoi-midpoint/
 - `tools/crosscheck.py` – independent check of the page's answers.
 - `tools/site.py` – builds `index.html` from `src/index.html`; give it a database address as the third argument to switch on live groups.
 - `tools/mockdb.py` – a local stand-in for the database, for testing live groups without the real one.
+- `tools/serve.py`, `tools/bench.mjs`, `tools/startcheck.mjs`, `tools/budget.py` – measure and guard how fast the page starts (see Speed).
 
 ## Live groups (optional)
 
@@ -43,6 +44,32 @@ A first visit downloads about 1.2 MB: the road map (1.06 MB), the fonts and the 
 The page keeps both data files in the browser's own store, so later visits download no map data, also after the site is updated. That only holds while the file names stay the same: new data must get a new file name (`hanoi-v4.json`) and a new store name (`KEEP` in `src/index.html`), or people keep the old copy.
 
 The site host compresses files lightly on the way out, so `tools/site.py` writes harder-compressed `.gz` copies and the page asks for those first. A browser that cannot unpack them itself gets the plain file.
+
+## Speed
+
+The page is built so that a first visit can be used before the map has arrived:
+
+- The join step (name, "Use where I am now", the remembered place, search) is in the page as it arrives. Whatever is pressed early is carried out when the map lands, so finding the phone's location runs while the map downloads.
+- The map download starts from a small script at the very top of the page, and the map is unpacked in a worker, off the main thread.
+- A group link connects to its group at once, so "Minh and Linh are on the map" shows before the map does.
+- The fonts are added by script, so nothing outside the page holds up the first paint.
+- The first search for the meeting place runs one person at a time, after the map is drawn, so typing is not held up.
+
+Measured in headless Chrome at phone speed (CPU slowed 4 times, median of 3 runs, milliseconds from opening the link). These are lab numbers, not phones.
+
+| | Name box usable | Map drawn | Friends' pins shown | Longest freeze |
+|---|---|---|---|---|
+| Fast 4G, first visit | 2105 to 291 | 2119 to 1738 | 2324 to 1660 | 599 to 112 |
+| Fast 4G, return visit | 377 to 54 | 390 to 267 | 609 to 302 | 607 to 119 |
+| Slow 4G, first visit | 8495 to 866 | 8511 to 7637 | 9148 to 7656 | 596 to 111 |
+| Slow 4G, return visit | 385 to 59 | 399 to 275 | 1016 to 671 | 622 to 121 |
+
+To measure again, start `python3 tools/serve.py <site folder> 48231` and `python3 tools/mockdb.py 48232 86400000`, build the page against that database address with `tools/site.py`, then:
+
+- `node tools/bench.mjs http://127.0.0.1:48231 http://127.0.0.1:48232` prints the timings (`DETAIL=1` adds every long task and layout shift).
+- `node tools/startcheck.mjs http://127.0.0.1:48231 http://127.0.0.1:48232` checks that pressing things before the map arrives still works.
+
+`tools/budget.py` runs on every pull request. It fails when the page or the data files grow past their limits, or when a stylesheet tag or an outside script is put back in front of the first paint. The limits only go down.
 
 ## Languages
 

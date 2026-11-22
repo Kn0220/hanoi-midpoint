@@ -273,7 +273,7 @@ button { cursor: pointer; }
 (() => {
 'use strict';
 const DATA_URL = 'hanoi-v2.json', PLACES_URL = 'hanoi-v2-places.json';   // the name changes whenever the data format does, so an old cached copy is never read
-const LIVE_DB = '';                 // address of the shared database for live groups; empty where the page cannot reach one
+const LIVE_DB = 'https://caiduyen-default-rtdb.asia-southeast1.firebasedatabase.app';                 // address of the shared database for live groups; empty where the page cannot reach one
 const COLORS = ['#E5484D', '#2D8FDB', '#2FA36B', '#9B6DFF', '#F2762E', '#E0559E', '#12A5B3', '#8F9A1E', '#A0623B', '#4C5FD5', '#B03A8C', '#5F7285'];
 const MAX_PEOPLE = 12, MAX_NAME = 18, SNAP_LIMIT = 1500;
 // km/h by road class: motorway, trunk, primary, secondary, tertiary, local street, living street, alley

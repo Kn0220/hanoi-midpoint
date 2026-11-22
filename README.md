@@ -23,7 +23,7 @@ With a database address set, the page shows "Plan together with a live link". On
 
 It uses a Firebase Realtime Database through its plain web address, with no sign-in and no key. Anyone who has a group's link can see and change that group's pins, and groups cannot be listed, so a group is as private as its link.
 
-To switch it on: create a Realtime Database, set the rules in `tools/firebase-rules.json`, then rebuild with
+This site is built with its database address set, so live groups are on. To point a copy at another database: create a Realtime Database, set the rules in `tools/firebase-rules.json`, then rebuild with
 
     python3 tools/site.py src . https://<your-database-address>
 

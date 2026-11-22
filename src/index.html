@@ -1530,8 +1530,9 @@ function endRoom() {
   if (!had) { loadExample(); renderPanel(); renderPins(); fit(state.people.map(p => [p.x, p.y])); if (state.people.length >= 2) run(true); }
 }
 function sweep() {                           // delete groups whose day is up; the database only lists the ones that have ended
+  // the cut-off is sent with a decimal point: Firebase refuses the rule's "older than a day" test when it arrives as a whole number
   if (!LIVE_DB) return; try { if (Date.now() - +(localStorage.getItem('midpoint-sweep') || 0) < 6 * 36e5) return; localStorage.setItem('midpoint-sweep', Date.now()); } catch (e) {}
-  fetch(LIVE_DB + '/idx.json?orderBy=%22%24value%22&endAt=' + (Date.now() - TTL - Math.min(3e5, TTL / 4)) + '&limitToFirst=25').then(res => res.ok ? res.json() : null).then(async old => {
+  fetch(LIVE_DB + '/idx.json?orderBy=%22%24value%22&endAt=' + Math.floor(Date.now() - TTL - Math.min(3e5, TTL / 4)) + '.5&limitToFirst=25').then(res => res.ok ? res.json() : null).then(async old => {
     for (const id of Object.keys(isObj(old) ? old : {})) { if (!/^[0-9a-z]{16}$/.test(id)) continue; const a = await fetch(LIVE_DB + '/rooms/' + id + '.json', { method: 'DELETE' }); if (a.ok) await fetch(bornUrl(id), { method: 'DELETE' }); }
   }).catch(() => {});
 }

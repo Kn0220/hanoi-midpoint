@@ -14,7 +14,8 @@ jobs:
         run: |
           db=https://caiduyen-default-rtdb.asia-southeast1.firebasedatabase.app
           cutoff=$(( ($(date +%s) - 86400 - 300) * 1000 ))
-          ids=$(curl -fsS "$db/idx.json?orderBy=%22%24value%22&endAt=$cutoff&limitToFirst=500" | jq -r '(. // {}) | keys[]')
+          # The cut-off carries a decimal point on purpose: Firebase refuses the rule's "older than a day" test for a whole number.
+          ids=$(curl -fsS "$db/idx.json?orderBy=%22%24value%22&endAt=$cutoff.5&limitToFirst=500" | jq -r '(. // {}) | keys[]')
           n=0
           for id in $ids; do
             case "$id" in *[!0-9a-z]*) continue ;; esac

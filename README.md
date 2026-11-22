@@ -23,9 +23,17 @@ With a database address set, the page shows "Plan together with a live link". On
 
 It uses a Firebase Realtime Database through its plain web address, with no sign-in and no key. Anyone who has a group's link can see and change that group's pins, and groups cannot be listed, so a group is as private as its link.
 
+A group lasts one day from the moment it is started. After that the database refuses to show or change it, and its pins are deleted: by the page of the next person who opens the site, and by a daily job (`.github/workflows/sweep.yml`). Only groups that have already ended can be listed or deleted this way. GitHub pauses scheduled jobs in a repository with no activity for 60 days; the job can be turned back on from the Actions tab.
+
 This site is built with its database address set, so live groups are on. To point a copy at another database: create a Realtime Database, set the rules in `tools/firebase-rules.json`, then rebuild with
 
     python3 tools/site.py src . https://<your-database-address>
+
+`tools/mockdb.py <port> <lifetime in ms>` is a local stand-in for the database that enforces the same rules, for testing with a short lifetime.
+
+## Link preview
+
+`og.png` is the picture shown when the link is pasted into a chat. To make it again: build a preview page of `src/index.html` next to `src/og.html`, open `og.html` at 1200 by 630 and take a screenshot. Chat apps keep the old picture for a link they have already seen; adding `?v=2` to the link makes them fetch it again.
 
 ## Data
 

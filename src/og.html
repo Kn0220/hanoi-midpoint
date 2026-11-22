@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
+<style>
+html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #ECEEF1; }
+iframe { position: absolute; top: 0; left: -408px; width: 2148px; height: 630px; border: 0; }
+.fade { position: absolute; inset: 0 auto 0 0; width: 610px; background: linear-gradient(90deg, rgba(236,238,241,.94) 0, rgba(236,238,241,.84) 58%, rgba(236,238,241,0) 100%); }
+.plate { position: absolute; left: 56px; top: 50%; transform: translateY(-50%); width: 500px; box-sizing: border-box; background: #1B4B9B; color: #fff; border-radius: 16px; padding: 38px 44px 40px;
+  box-shadow: inset 0 0 0 7px #1B4B9B, inset 0 0 0 10px rgba(255,255,255,.95), 0 18px 40px rgba(17,26,46,.28), 0 2px 6px rgba(17,26,46,.25); font-family: "Be Vietnam Pro", system-ui, sans-serif; }
+.kick { display: flex; align-items: center; gap: 12px; font-size: 25px; font-weight: 500; color: rgba(255,255,255,.88); }
+.kick::before { content: ""; width: 26px; height: 26px; background: #F7C531; clip-path: polygon(50% 0, 62% 35%, 98% 36%, 69% 58%, 80% 93%, 50% 72%, 20% 93%, 31% 58%, 2% 36%, 38% 35%); }
+h1 { margin: 14px 0 0; font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-weight: 700; font-size: 118px; line-height: .9; letter-spacing: .01em; text-transform: uppercase; }
+p { margin: 22px 0 0; font-size: 25px; line-height: 1.32; color: rgba(255,255,255,.9); }
+.osm { position: absolute; right: 12px; bottom: 8px; font: 500 13px "Be Vietnam Pro", system-ui, sans-serif; color: #5F6B80; text-shadow: 0 0 3px #ECEEF1, 0 0 3px #ECEEF1; }
+</style></head><body>
+<iframe id="f" src="preview.html"></iframe>
+<div class="fade"></div>
+<div class="plate"><span class="kick">Meet in the middle</span><h1>Hanoi Midpoint</h1><p>The fairest spot for your whole group, by real ride time.</p></div>
+<div class="osm">© OpenStreetMap contributors</div>
+<script>
+const f = document.getElementById('f');
+f.addEventListener('load', () => {
+  const d = f.contentDocument;
+  d.documentElement.setAttribute('data-theme', 'light');
+  const st = d.createElement('style');
+  st.textContent = '.ctl,.chip,.mapfoot,.toast{display:none!important}';
+  d.head.appendChild(st);
+});
+</script>
+</body></html>

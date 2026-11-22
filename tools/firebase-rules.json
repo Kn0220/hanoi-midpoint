@@ -1,9 +1,18 @@
 {
   "rules": {
+    "idx": {
+      ".read": "query.orderByValue === true && query.endAt !== null && query.endAt < now - 86400000",
+      ".indexOn": ".value",
+      "$room": {
+        ".read": true,
+        ".write": "$room.length === 16 && ((!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && data.val() < now - 86400000 && !root.child('rooms').child($room).exists()))",
+        ".validate": "newData.val() === now"
+      }
+    },
     "rooms": {
       "$room": {
-        ".read": "$room.length === 16",
-        ".write": "$room.length === 16",
+        ".read": "root.child('idx').child($room).exists() && root.child('idx').child($room).val() > now - 86400000",
+        ".write": "root.child('idx').child($room).exists() && (root.child('idx').child($room).val() > now - 86400000 || !newData.exists())",
         "s": {
           "m": { ".validate": "newData.val() === 'b' || newData.val() === 'c'" },
           "g": { ".validate": "newData.val() === 'f' || newData.val() === 't'" },

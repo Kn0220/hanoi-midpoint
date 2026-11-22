@@ -66,16 +66,18 @@ const M = 'window.__midpoint', txt = id => `document.getElementById('${id}').tex
   await p.shot('func-home-after');
   check('home: no script errors', p.errors.length === 0, p.errors); await p.close(); }
 
-// 2. home with a remembered place, pressed early
+// 2. someone who has been here before: the name is remembered, the place is not, and there is one way to add yourself by location
 { const p = await page({ lang: 'vi', store: { 'midpoint-home': JSON.stringify({ la: 21.0362, lo: 105.7906, w: 'Cầu Giấy' }), 'midpoint-name': 'Lan' } }); await p.go(SITE + '/');
-  await p.until(`document.getElementById('join-saved') && ${M}`);
-  check('saved: button shown before the map, in Vietnamese', await p.ev(`!${M}.G && !document.getElementById('join-saved').hidden && ${txt('join-saved')}`) === 'Thêm tôi từ Cầu Giấy', await p.ev(txt('join-saved')));
+  await p.until(`document.getElementById('join-name') && ${M}`);
+  check('saved: one button in the join step, in Vietnamese', await p.ev(`!${M}.G && JSON.stringify([...document.querySelectorAll('#join button')].filter(b => !b.hidden).map(b => b.textContent))`) === JSON.stringify(['Dùng vị trí hiện tại của tôi']), await p.ev(`JSON.stringify([...document.querySelectorAll('#join button')].map(b => b.textContent))`));
   check('saved: name filled from last time', await p.ev(`document.getElementById('join-name').value`) === 'Lan');
-  await p.ev(`document.getElementById('join-saved').click()`);
-  check('saved: waits', await p.ev(`document.getElementById('join-saved').disabled && document.getElementById('join-here').disabled`));
-  await p.until(`!!${M}.G`, 90000); await sleep(1200);
-  const st = await p.ev(`JSON.stringify(${M}.state.people.map(p => [p.name, p.me, p.label || '']))`);
-  check('saved: added from the remembered place', st === JSON.stringify([['Lan', true, 'Cầu Giấy']]), st);
+  check('saved: the place kept by an earlier version is gone', await p.ev(`localStorage.getItem('midpoint-home')`) === null);
+  await p.until(`!!${M}.G`, 90000); await sleep(2500);
+  check('saved: the example needs no Find button', await p.ev(`${M}.state.example && !!${M}.state.result && document.getElementById('go').hidden`));
+  const xy = await p.ev(`(() => { const m = ${M}; m.state.people = []; m.state.example = false; m.state.result = null; m.changed(true); const a = m.toXY(21.03, 105.82), b = m.toXY(21.0, 105.86); m.addPerson(a[0], a[1], 'A', { quiet: true }); m.changed(true); const one = [document.getElementById('go').hidden, [...document.querySelectorAll('#people .note')].map(n => n.textContent).join('|')]; m.addPerson(b[0], b[1], 'B', { quiet: true }); m.changed(true); return JSON.stringify([one, document.getElementById('go').hidden, document.getElementById('go').textContent, document.querySelectorAll('#people .note').length]); })()`);
+  check('saved: one person shows a line of text, two show the Find button', xy === JSON.stringify([[true, 'Thêm một người nữa để tìm điểm hẹn.'], false, 'Tìm điểm hẹn', 0]), xy);
+  await p.ev(`document.getElementById('go').click()`); await p.until(`!!${M}.state.result`, 8000);
+  check('saved: the button goes once the answer is on its way', await p.ev(`document.getElementById('go').hidden`));
   check('saved: no script errors', p.errors.length === 0, p.errors); await p.close(); }
 
 // 3. group link, first visit: who is here shows before the map; early press lands in the group

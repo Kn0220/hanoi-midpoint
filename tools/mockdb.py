@@ -30,7 +30,7 @@ def allowed(method, keys, query=""):
         if len(i) != 16 or born(i) is None: return False
         return fresh(i) or (method == "DELETE" and len(keys) == 2)
     if keys == ["idx"]:
-        m = __import__("re").search(r"endAt=(\d+)", query)
+        m = __import__("re").search(r"endAt=(\d+)\.\d", query)  # like the real database: a whole-number cut-off is refused
         return method == "GET" and "orderBy=%22%24value%22" in query and bool(m) and int(m.group(1)) < now() - TTL
     if keys[:1] == ["idx"] and len(keys) == 2:
         i = keys[1]

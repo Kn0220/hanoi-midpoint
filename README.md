@@ -5,6 +5,7 @@ Find the fairest place in Hanoi for a group of friends to meet, by road travel t
 Open it: https://kn0220.github.io/hanoi-midpoint/
 
 - Tap the map, or search a street, alley, building or address, once per friend.
+- To move a pin, hold it for a moment, then drag. A swipe that starts on a pin moves the map, so nobody's pin is dragged by accident; every move can be undone.
 - "Fairest" makes the longest ride as short as possible; "Least total" makes everyone's travel added together as small as possible.
 - Everything runs in the browser. Ride times are off-peak estimates from road type and distance, with no live traffic.
 - Vietnamese or English: the VI / EN switch is at the top. The page starts in Vietnamese when the browser lists Vietnamese among its languages, and remembers the choice in that browser.

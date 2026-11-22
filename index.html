@@ -181,8 +181,14 @@ button { cursor: pointer; }
 .pin i { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: grid; place-items: center; border: 2px solid var(--surface); box-shadow: 0 2px 6px rgba(10,16,30,.38); }
 .pin i b { transform: rotate(45deg); color: #fff; font-size: 12px; font-weight: 700; font-style: normal; }
 .pin span { position: absolute; top: 2px; left: 34px; background: var(--surface); color: var(--ink); border-radius: 5px; padding: 2px 7px; font-size: 12px; font-weight: 600; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 0 0 1px var(--line), 0 2px 5px rgba(10,16,30,.16); }
-.pin.drag { cursor: grabbing; z-index: 6; }
-.pin.drag i { box-shadow: 0 8px 14px rgba(10,16,30,.42); }
+.pin { -webkit-touch-callout: none; }
+.pin i { transition: transform .16s cubic-bezier(.2,.8,.2,1), box-shadow .16s; }
+.pin.arming i { animation: pin-arm var(--hold, 350ms) linear forwards; }
+@keyframes pin-arm { from { box-shadow: 0 2px 6px rgba(10,16,30,.38), 0 0 0 0 var(--accent); } to { box-shadow: 0 2px 6px rgba(10,16,30,.38), 0 0 0 6px var(--accent); } }
+.pin.drag { z-index: 6; }
+.pin.drag i { transform: translateY(-6px) rotate(-45deg) scale(1.16); box-shadow: 0 12px 18px rgba(10,16,30,.42), 0 0 0 3px var(--accent); }
+.pin.drag::after { content: ""; position: absolute; left: 10px; top: 35px; width: 10px; height: 5px; border-radius: 50%; background: rgba(10,16,30,.5); }   /* where the pin will land */
+.stage.moving-pin, .stage.moving-pin .pin { cursor: grabbing; }
 .mark { position: absolute; left: 0; top: 0; pointer-events: auto; margin: -11px 0 0 -11px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); background: var(--ink); color: var(--surface); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0; box-shadow: 0 1px 4px rgba(10,16,30,.38); z-index: 1; }
 .mark.tuck { display: none; }
 .mark.on { background: var(--accent); color: var(--accent-ink); width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 4; font-size: 17px; }
@@ -407,8 +413,8 @@ const VI = {
   'motorbike': 'xe máy',
   'car': 'ô tô',
   '{n} added at {w}': 'Đã thêm {n} tại {w}',
-  'You are on the map, {n}. Drag your pin to fine-tune.': '{n} ơi, bạn đã có trên bản đồ. Kéo ghim để chỉnh cho chuẩn.',
-  '{n} added. Drag the pin to fine-tune.': 'Đã thêm {n}. Kéo ghim để chỉnh cho chuẩn.',
+  'You are on the map, {n}. Hold your pin, then drag to fine-tune.': '{n} ơi, bạn đã có trên bản đồ. Giữ ghim rồi kéo để chỉnh cho chuẩn.',
+  '{n} added. Hold the pin, then drag to fine-tune.': 'Đã thêm {n}. Giữ ghim rồi kéo để chỉnh cho chuẩn.',
   '{n} pin in this link was left out (outside the map, unreadable, or past the limit of {max})': '{n} ghim trong link này bị bỏ qua (nằm ngoài bản đồ, không đọc được, hoặc vượt giới hạn {max} người)',
   '{n} pins in this link were left out (outside the map, unreadable, or past the limit of {max})': '{n} ghim trong link này bị bỏ qua (nằm ngoài bản đồ, không đọc được, hoặc vượt giới hạn {max} người)',
   '{n} is on the map': '{n} đã có trên bản đồ',
@@ -451,7 +457,7 @@ const VI = {
   'The point on the roads that best balances everyone': 'Điểm trên đường cân bằng nhất cho mọi người',
   'OpenStreetMap has no place of this kind near the midpoint. Try another kind.': 'OpenStreetMap chưa có địa điểm loại này gần điểm giữa. Thử loại khác nhé.',
   'Everyone starts from the same spot, so there was nothing to search.': 'Mọi người xuất phát từ cùng một chỗ nên không cần tìm.',
-  'No road connects everyone. Move a pin closer to a main road.': 'Không có đường nào nối tất cả mọi người. Kéo ghim lại gần đường lớn hơn.',
+  'No road connects everyone. Move a pin closer to a main road.': 'Không có đường nào nối tất cả mọi người. Chuyển một ghim lại gần đường lớn hơn.',
   'You are on the map. Add your name so the group knows who it is.': 'Bạn đã có trên bản đồ. Thêm tên để cả nhóm biết là ai.',
   'Add name': 'Thêm tên',
   'You left the live group. Your copy of the pins stays here.': 'Bạn đã rời nhóm. Bản sao các ghim vẫn ở lại trên máy bạn.',
@@ -460,7 +466,7 @@ const VI = {
   'Copied': 'Đã sao chép',
   'That point is outside the mapped part of Hanoi.': 'Điểm đó nằm ngoài vùng bản đồ Hà Nội.',
   'Pinned spot': 'Điểm đã ghim',
-  'No record of that house number. Pick the street, then drag the pin to the house.': 'Chưa có số nhà đó. Chọn tên phố rồi kéo ghim đến đúng nhà.',
+  'No record of that house number. Pick the street, then hold the pin and drag it to the house.': 'Chưa có số nhà đó. Chọn tên phố, rồi giữ ghim và kéo đến đúng nhà.',
   'Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.': 'Không có tên đó trên bản đồ. Phóng to rồi chạm vào vị trí, hoặc dán toạ độ hay Plus Code từ Google Maps.',
   'Still loading place names. Try again in a moment, or tap the map.': 'Đang tải tên địa điểm. Thử lại sau giây lát, hoặc chạm vào bản đồ.',
   'Could not save to the group. Check the connection.': 'Không lưu được vào nhóm. Kiểm tra kết nối mạng.',
@@ -511,7 +517,10 @@ const VI = {
   'Fairest': 'Công bằng nhất',
   'Least total': 'Tổng ít nhất',
   'Everyone adds where they are coming from. You get the place with the fairest ride for all of you.': 'Mỗi người thêm nơi mình xuất phát. Bạn sẽ có điểm hẹn công bằng nhất về đường đi cho cả nhóm.',
-  '{n}, {w}. Drag to move.': '{n}, {w}. Kéo để di chuyển.'
+  '{n}, {w}. Hold, then drag to move.': '{n}, {w}. Giữ rồi kéo để di chuyển.',
+  '{n} moved to {w}': 'Đã chuyển {n} đến {w}',
+  'To move your pin, hold it for a moment, then drag.': 'Muốn chuyển ghim của bạn, giữ một lúc rồi kéo.',
+  'To move {n}, hold the pin for a moment, then drag.': 'Muốn chuyển {n}, giữ ghim một lúc rồi kéo.'
 };
 let LANG = 'en';
 try { const saved = localStorage.getItem('midpoint-lang'); LANG = saved === 'vi' || saved === 'en' ? saved : (navigator.languages || [navigator.language || '']).some(l => /^vi\b/i.test(l)) ? 'vi' : 'en'; } catch (e) {}
@@ -1024,10 +1033,9 @@ function run(animated, keepView) {
 function renderPins() {
   for (const el of [...pinsEl.querySelectorAll('.pin')]) el.remove();
   for (const p of state.people) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'pin'; b.dataset.id = p.id; b.setAttribute('aria-label', tr('{n}, {w}. Drag to move.', { n: p.name, w: p.where }));
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pin'; b.dataset.id = p.id; b.setAttribute('aria-label', tr('{n}, {w}. Hold, then drag to move.', { n: p.name, w: p.where }));
     const i = document.createElement('i'); i.style.background = p.color; const l = document.createElement('b'); l.textContent = initial(p); i.append(l);
     const s = document.createElement('span'); s.textContent = p.name; b.append(i, s); pinsEl.append(b);
-    b.addEventListener('pointerdown', ev => startPinDrag(ev, p, b));
   }
   placeDom();
 }
@@ -1049,29 +1057,64 @@ function placeDom() {
   marks.sort((a, b) => (b.classList.contains('on') - a.classList.contains('on')));
   for (const el of marks) { const hit = placed.some(q => Math.hypot(q[0] - el._sx, q[1] - el._sy) < 21); el.classList.toggle('tuck', hit && !el.classList.contains('on')); if (!hit || el.classList.contains('on')) placed.push([el._sx, el._sy]); }
 }
-function startPinDrag(ev, p, el) {
-  ev.stopPropagation(); ev.preventDefault(); try { el.setPointerCapture(ev.pointerId); } catch (e) {} el.classList.add('drag');
-  const r = stage.getBoundingClientRect(); let moved = false;
-  const ox = sx(p.x) - (ev.clientX - r.left), oy = sy(p.y) - (ev.clientY - r.top);
-  const move = e => { if (!moved && Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) < 4) return; moved = true; el._x = wx(e.clientX - r.left + ox); el._y = wy(e.clientY - r.top + oy); placeDom(); };
-  const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); el.classList.remove('drag');
-    if (moved) { const old = [p.x, p.y, p.label]; p.x = el._x; p.y = el._y; p.label = '';
-      if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true); } else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast(tr('That is outside the mapped part of Hanoi')); } }
-    el._x = el._y = undefined; placeDom(); };
-  el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+/* A pin moves only after a short hold. A swipe that starts on a pin pans the map, so nobody's pin is dragged by accident. */
+const HOLD_TOUCH = 350, HOLD_MOUSE = 180, SLOP = 7;
+let pinHold = null, pinDrag = null;
+const pinEl = d => d.el.isConnected ? d.el : (d.el = pinsEl.querySelector('.pin[data-id="' + d.p.id + '"]'));   // pins are redrawn when the group changes
+function armPin(e, el) {
+  const p = state.people.find(q => q.id === +el.dataset.id); if (!p) return;
+  const ms = e.pointerType === 'mouse' ? HOLD_MOUSE : HOLD_TOUCH;
+  pinHold = { id: e.pointerId, p, el, x: e.clientX, y: e.clientY, touch: e.pointerType !== 'mouse', timer: setTimeout(liftPin, ms) };
+  el.style.setProperty('--hold', ms + 'ms'); el.classList.add('arming');
 }
+function disarmPin() { if (!pinHold) return; clearTimeout(pinHold.timer); const el = pinEl(pinHold); if (el) el.classList.remove('arming'); pinHold = null; }
+function liftPin() {
+  const h = pinHold; if (!h) return; pinHold = null; const el = pinEl(h); if (el) el.classList.remove('arming');
+  if (!el || !state.people.includes(h.p)) return;
+  ptrs.delete(h.id); gesture = null;                    // from here the finger moves the pin, not the map
+  const r = stage.getBoundingClientRect();
+  pinDrag = { id: h.id, p: h.p, el, x: h.x, y: h.y, touch: h.touch, ox: sx(h.p.x) - (h.x - r.left), oy: sy(h.p.y) - (h.y - r.top), far: 0, moved: false };
+  el.classList.add('drag'); stage.classList.add('moving-pin'); $('toast').hidden = true;
+  try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+}
+function dragPin(e) {
+  const d = pinDrag, el = pinEl(d); if (!el || !state.people.includes(d.p)) { dropPin(false); return; }
+  el.classList.add('drag');
+  const dist = Math.hypot(e.clientX - d.x, e.clientY - d.y); if (!d.moved && dist < 4) return;
+  d.moved = true; d.far = Math.max(d.far, dist);
+  const rise = d.touch ? Math.max(0, d.oy + 30) * Math.min(1, d.far / 36) : 0;   // under a finger the pin climbs until its tip shows above the fingertip
+  const r = stage.getBoundingClientRect(); el._x = wx(e.clientX - r.left + d.ox); el._y = wy(e.clientY - r.top + d.oy - rise); placeDom();
+}
+function dropPin(keep) {
+  const d = pinDrag; if (!d) return; pinDrag = null; stage.classList.remove('moving-pin');
+  const el = pinEl(d), p = d.p; if (el) el.classList.remove('drag');
+  if (keep && d.moved && el && el._x !== undefined && state.people.includes(p)) {
+    const old = [p.x, p.y, p.label], wasExample = state.example; p.x = el._x; p.y = el._y; p.label = '';
+    if (inBounds(p.x, p.y) && snap(p)) { state.example = false; changed(true);
+      toast(tr('{n} moved to {w}', { n: p.name, w: p.where.split(',')[0] }), tr('Undo'), () => { if (!state.people.includes(p)) return; p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); state.example = wasExample; changed(true); }); }
+    else { p.x = old[0]; p.y = old[1]; p.label = old[2]; snap(p); toast(tr('That is outside the mapped part of Hanoi')); }
+  }
+  if (el) el._x = el._y = undefined; placeDom();
+}
+function pinHint(p) { toast(p.me ? tr('To move your pin, hold it for a moment, then drag.') : tr('To move {n}, hold the pin for a moment, then drag.', { n: p.name })); }
 
 /* ------------------------------------------------------------ gestures */
 const ptrs = new Map(); let gesture = null, lastTap = null;
 stage.addEventListener('pointerdown', e => {
-  if (e.target.closest('.ctl, .pin, .mark, .toast, .mapfoot a, .loading')) return;
+  if (pinDrag || e.target.closest('.ctl, .mark, .toast, .mapfoot a, .loading')) return;
+  const pin = e.target.closest('.pin'); if (pin) e.preventDefault();
   try { stage.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-  if (ptrs.size === 1) gesture = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, multi: false };
-  else if (gesture) gesture.multi = true;
+  if (ptrs.size === 1) { gesture = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, multi: false, pin: null };
+    if (pin && G && e.button === 0) { armPin(e, pin); gesture.pin = pinHold && pinHold.p; } }
+  else { if (gesture) gesture.multi = true; disarmPin(); }            // a second finger means a pinch, not a pick-up
 });
 stage.addEventListener('pointermove', e => {
+  if (pinDrag) { if (e.pointerId === pinDrag.id) dragPin(e); return; }
   const prev = ptrs.get(e.pointerId); if (!prev || !G) return;
   const r = stage.getBoundingClientRect();
+  if (pinHold && e.pointerId === pinHold.id) {             // still deciding: a steady finger picks the pin up, a moving one pans the map
+    if (Math.hypot(e.clientX - pinHold.x, e.clientY - pinHold.y) <= SLOP) return;
+    disarmPin(); if (gesture) gesture.moved = true; ptrs.set(e.pointerId, [e.clientX, e.clientY]); return; }
   if (ptrs.size === 1) { view.cx -= (e.clientX - prev[0]) / view.s; view.cy -= (e.clientY - prev[1]) / view.s; if (gesture && Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) > 7) gesture.moved = true; ptrs.set(e.pointerId, [e.clientX, e.clientY]); viewChanged(); }
   else if (ptrs.size === 2) { const other = [...ptrs.entries()].find(([id]) => id !== e.pointerId)[1];
     const d0 = Math.hypot(prev[0] - other[0], prev[1] - other[1]), d1 = Math.hypot(e.clientX - other[0], e.clientY - other[1]);
@@ -1080,10 +1123,15 @@ stage.addEventListener('pointermove', e => {
     if (d0 > 0 && d1 > 0) zoomAt(d1 / d0, (e.clientX + other[0]) / 2 - r.left, (e.clientY + other[1]) / 2 - r.top); else viewChanged(); }
 });
 const endPtr = e => {
+  if (pinDrag) { if (e.pointerId === pinDrag.id) dropPin(e.type === 'pointerup'); return; }
+  if (pinHold && e.pointerId === pinHold.id) disarmPin();
   if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
   if (ptrs.size === 0 && gesture && G) { const g = gesture; gesture = null;
-    if (e.type === 'pointerup' && !g.moved && !g.multi && performance.now() - g.t < 500) { const r = stage.getBoundingClientRect(); tapMap(e.clientX - r.left, e.clientY - r.top); } }
+    if (e.type === 'pointerup' && !g.moved && !g.multi && performance.now() - g.t < 500) { if (g.pin) pinHint(g.pin); else { const r = stage.getBoundingClientRect(); tapMap(e.clientX - r.left, e.clientY - r.top); } } }
 };
+stage.addEventListener('contextmenu', e => { if (e.target.closest('.pin')) e.preventDefault(); });   // a long press on a pin picks it up, with no menu
+addEventListener('keydown', e => { if (e.key === 'Escape' && pinDrag) dropPin(false); });
+addEventListener('blur', () => { disarmPin(); dropPin(false); });
 stage.addEventListener('pointerup', endPtr); stage.addEventListener('pointercancel', endPtr);
 stage.addEventListener('wheel', e => { if (!G) return; e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
 stage.addEventListener('keydown', e => {
@@ -1109,7 +1157,7 @@ function tapMap(x, y) {
 function welcome(p) {                        // this device's own pin just went on the map
   const ask = () => { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } };
   if (/^(?:Friend|Bạn) \d+$/.test(p.name)) toast(tr('You are on the map. Add your name so the group knows who it is.'), tr('Add name'), ask);
-  else toast(tr('You are on the map, {n}. Drag your pin to fine-tune.', { n: p.name }));
+  else toast(tr('You are on the map, {n}. Hold your pin, then drag to fine-tune.', { n: p.name }));
 }
 $('zin').addEventListener('click', () => zoomAt(1.6, W / 2, H / 2));
 $('zout').addEventListener('click', () => zoomAt(1 / 1.6, W / 2, H / 2));
@@ -1189,7 +1237,7 @@ function doSearch() {
     const words = qv.split(' ');
     hits = lookup(qv);
     if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w)).join(' '); if (t.length >= 2 && t !== qv) hits = lookup(t); }
-    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w) && !/^\d+[a-z]?(\/\d+[a-z]?)*$/.test(w)).join(' '); if (t.length >= 2 && t !== qv) { hits = lookup(t); if (hits.length) lead = tr('No record of that house number. Pick the street, then drag the pin to the house.'); } }
+    if (!hits.length) { const t = words.filter(w => !OPTIONAL.has(w) && !/^\d+[a-z]?(\/\d+[a-z]?)*$/.test(w)).join(' '); if (t.length >= 2 && t !== qv) { hits = lookup(t); if (hits.length) lead = tr('No record of that house number. Pick the street, then hold the pin and drag it to the house.'); } }
     if (!hits.length) { note(IX ? tr('Nothing by that name on the map. Zoom in and tap the spot, or paste coordinates or a Plus Code from Google Maps.') : tr('Still loading place names. Try again in a moment, or tap the map.')); return; }
   }
   if (lead) note(lead);
@@ -1207,7 +1255,7 @@ function pickHit(i) {
   state.example = false; searchEl.value = ''; hitsEl.hidden = true; hits = []; app.classList.remove('searching');
   changed(true); view.cx = p.x; view.cy = p.y; view.s = Math.max(view.s, 0.9); viewChanged();
   if (p.me) { if (narrow.matches) searchEl.blur(); welcome(p); }
-  else if (narrow.matches) { searchEl.blur(); toast(tr('{n} added. Drag the pin to fine-tune.', { n: p.name })); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
+  else if (narrow.matches) { searchEl.blur(); toast(tr('{n} added. Hold the pin, then drag to fine-tune.', { n: p.name })); } else { const el = $('name-' + p.id); if (el) { el.focus(); el.select(); } }
 }
 let searchT = 0;
 searchEl.addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(doSearch, 60); });

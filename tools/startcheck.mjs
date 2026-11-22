@@ -63,6 +63,7 @@ const M = 'window.__midpoint', txt = id => `document.getElementById('${id}').tex
   await sleep(1200);
   const st = await p.ev(`JSON.stringify({ n: ${M}.state.people.length, me: ${M}.state.people.filter(p => p.me).map(p => p.name), ex: ${M}.state.example, joining: document.getElementById('app').classList.contains('joining') })`);
   check('home: I was added once the map landed, under the typed name', st === JSON.stringify({ n: 1, me: ['Kevin'], ex: false, joining: false }), st);
+  check('home: the invite button is there as soon as I am on the map', await p.ev(`(() => { const l = document.getElementById('live'), b = document.getElementById('live-start'); return !l.hidden && !b.hidden && b.getBoundingClientRect().width > 0 ? b.textContent : ''; })()`) === 'Invite the group', await p.ev(`(() => { const l = document.getElementById('live'), b = document.getElementById('live-start'); return !l.hidden && !b.hidden && b.getBoundingClientRect().width > 0 ? b.textContent : ''; })()`));
   await p.shot('func-home-after');
   check('home: no script errors', p.errors.length === 0, p.errors); await p.close(); }
 
@@ -74,8 +75,8 @@ const M = 'window.__midpoint', txt = id => `document.getElementById('${id}').tex
   check('saved: the place kept by an earlier version is gone', await p.ev(`localStorage.getItem('midpoint-home')`) === null);
   await p.until(`!!${M}.G`, 90000); await sleep(2500);
   check('saved: the example needs no Find button', await p.ev(`${M}.state.example && !!${M}.state.result && document.getElementById('go').hidden`));
-  const xy = await p.ev(`(() => { const m = ${M}; m.state.people = []; m.state.example = false; m.state.result = null; m.changed(true); const a = m.toXY(21.03, 105.82), b = m.toXY(21.0, 105.86); m.addPerson(a[0], a[1], 'A', { quiet: true }); m.changed(true); const one = [document.getElementById('go').hidden, [...document.querySelectorAll('#people .note')].map(n => n.textContent).join('|')]; m.addPerson(b[0], b[1], 'B', { quiet: true }); m.changed(true); return JSON.stringify([one, document.getElementById('go').hidden, document.getElementById('go').textContent, document.querySelectorAll('#people .note').length]); })()`);
-  check('saved: one person shows a line of text, two show the Find button', xy === JSON.stringify([[true, 'Thêm một người nữa để tìm điểm hẹn.'], false, 'Tìm điểm hẹn', 0]), xy);
+  const xy = await p.ev(`(() => { const m = ${M}; m.state.people = []; m.state.example = false; m.state.result = null; m.changed(true); const a = m.toXY(21.03, 105.82), b = m.toXY(21.0, 105.86); m.addPerson(a[0], a[1], 'A', { quiet: true }); m.changed(true); const one = [document.getElementById('go').hidden, [...document.querySelectorAll('#people .note')].map(n => n.textContent).join('|'), (() => { const l = document.getElementById('live'), b = document.getElementById('live-start'); return !l.hidden && !b.hidden && b.getBoundingClientRect().width > 0 ? b.textContent : ''; })()]; m.addPerson(b[0], b[1], 'B', { quiet: true }); m.changed(true); return JSON.stringify([one, document.getElementById('go').hidden, document.getElementById('go').textContent, document.querySelectorAll('#people .note').length]); })()`);
+  check('saved: one person shows the invite button and a line of text, two show the Find button', xy === JSON.stringify([[true, 'Hoặc tự thêm bạn ở ô bên dưới.', 'Mời cả nhóm'], false, 'Tìm điểm hẹn', 0]), xy);
   await p.ev(`document.getElementById('go').click()`); await p.until(`!!${M}.state.result`, 8000);
   check('saved: the button goes once the answer is on its way', await p.ev(`document.getElementById('go').hidden`));
   check('saved: no script errors', p.errors.length === 0, p.errors); await p.close(); }
